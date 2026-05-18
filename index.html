@@ -1,0 +1,1699 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#0d9488" media="(prefers-color-scheme: light)" />
+<meta name="theme-color" content="#0f172a" media="(prefers-color-scheme: dark)" />
+<title>Menüsküs Rehab</title>
+<!--
+  EGZERSİZ GİF KAYNAKLARI
+  -----------------------
+  Bu uygulama tüm egzersiz GIF'lerini "assets/gifs/{exercise-id}.gif" yerel
+  yolundan yükler. Dosya yoksa, egzersize uygun bir inline SVG çizim fallback
+  olarak gösterilir.
+
+  Önerilen kaynaklar (manuel olarak indirip assets/gifs/ klasörüne koyabilirsin):
+    1) wger.de açık egzersiz veritabanı — REST API: https://wger.de/api/v2/
+       Görseller: https://wger.de/media/exercise-images/{id}/{slug}.png
+       Lisans: CC-BY-SA 3.0 (atıf gerekli). API çoğunlukla PNG sunar, GIF azdır.
+       Endpoint örnekleri:
+         GET https://wger.de/api/v2/exerciseimage/?format=json
+         GET https://wger.de/api/v2/exerciseinfo/?language=2&format=json
+    2) musclewiki.com tarzı public GIF'ler — resmi/hotlinkable değil; kullanmadan
+       önce site şartlarını kontrol et. Geliştirme/kişisel kullanım için README'ye bak.
+
+  Eksik dosyaların tam listesi README.md içindedir.
+-->
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    darkMode: 'media',
+    theme: {
+      extend: {
+        fontFamily: {
+          sans: ['system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'sans-serif'],
+        },
+        colors: {
+          brand: {
+            50:  '#f0fdfa',
+            100: '#ccfbf1',
+            200: '#99f6e4',
+            300: '#5eead4',
+            400: '#2dd4bf',
+            500: '#14b8a6',
+            600: '#0d9488',
+            700: '#0f766e',
+            800: '#115e59',
+            900: '#134e4a',
+          },
+        },
+        transitionDuration: { DEFAULT: '180ms' },
+      },
+    },
+  };
+</script>
+<style>
+  html, body { -webkit-tap-highlight-color: transparent; }
+  body { padding-bottom: env(safe-area-inset-bottom); }
+  .nav-pad { padding-bottom: calc(76px + env(safe-area-inset-bottom)); }
+  .tab-num { font-variant-numeric: tabular-nums; }
+  /* Skeleton shimmer */
+  @keyframes shimmer { 0% { background-position: -200px 0; } 100% { background-position: 200px 0; } }
+  .skeleton {
+    background: linear-gradient(90deg, rgba(148,163,184,0.15) 0%, rgba(148,163,184,0.35) 50%, rgba(148,163,184,0.15) 100%);
+    background-size: 400px 100%;
+    animation: shimmer 1.4s linear infinite;
+  }
+  /* Reduced motion */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+  }
+  /* Min tap target */
+  .tap { min-height: 48px; min-width: 48px; }
+</style>
+</head>
+<body class="min-h-screen bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100 font-sans antialiased nav-pad">
+
+<div id="app" class="max-w-2xl mx-auto px-4 pt-4"></div>
+
+<nav id="bottom-nav" class="fixed bottom-0 inset-x-0 z-30 bg-white/95 dark:bg-slate-900/95 backdrop-blur border-t border-slate-200 dark:border-slate-800" style="padding-bottom: env(safe-area-inset-bottom);">
+  <ul class="max-w-2xl mx-auto grid grid-cols-4">
+    <li><a href="#home"      data-nav="home"      class="tap flex flex-col items-center justify-center py-2 text-xs text-slate-500 dark:text-slate-400">
+      <svg class="w-6 h-6 mb-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 11.5 12 4l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1v-8.5Z"/></svg>
+      Ana
+    </a></li>
+    <li><a href="#exercises" data-nav="exercises" class="tap flex flex-col items-center justify-center py-2 text-xs text-slate-500 dark:text-slate-400">
+      <svg class="w-6 h-6 mb-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 6h16M4 12h16M4 18h10"/></svg>
+      Egzersizler
+    </a></li>
+    <li><a href="#bike"      data-nav="bike"      class="tap flex flex-col items-center justify-center py-2 text-xs text-slate-500 dark:text-slate-400">
+      <svg class="w-6 h-6 mb-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="6" cy="17" r="4"/><circle cx="18" cy="17" r="4"/><path d="m6 17 5-9h4l3 9M10 8 8 5h4"/></svg>
+      Bisiklet
+    </a></li>
+    <li><a href="#progress"  data-nav="progress"  class="tap flex flex-col items-center justify-center py-2 text-xs text-slate-500 dark:text-slate-400">
+      <svg class="w-6 h-6 mb-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 20h18M6 17V9m6 8V5m6 12v-6"/></svg>
+      İlerleme
+    </a></li>
+  </ul>
+</nav>
+
+<script>
+(function () {
+  'use strict';
+
+  // -----------------------------------------------------------------------------
+  // SVG FALLBACK ILLUSTRATIONS
+  // -----------------------------------------------------------------------------
+  const SVG = (inner) => `
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"
+         class="w-full h-full text-brand-600 dark:text-brand-300"
+         fill="none" stroke="currentColor" stroke-width="2.4"
+         stroke-linecap="round" stroke-linejoin="round">${inner}</svg>`;
+
+  const SVG_FALLBACKS = {
+    walk: SVG(`
+      <circle cx="50" cy="18" r="7" fill="currentColor" stroke="none"/>
+      <path d="M50 27 V55"/>
+      <path d="M50 36 L36 50"/>
+      <path d="M50 36 L66 46"/>
+      <path d="M50 55 L40 78"/>
+      <path d="M50 55 L62 72 L70 86"/>
+    `),
+    squat: SVG(`
+      <circle cx="50" cy="18" r="7" fill="currentColor" stroke="none"/>
+      <path d="M50 27 V48"/>
+      <path d="M50 33 L32 38"/>
+      <path d="M50 33 L68 38"/>
+      <path d="M50 48 L34 66 L30 86"/>
+      <path d="M50 48 L66 66 L70 86"/>
+      <path d="M22 86 H40"/>
+      <path d="M60 86 H78"/>
+    `),
+    lunge: SVG(`
+      <circle cx="42" cy="20" r="7" fill="currentColor" stroke="none"/>
+      <path d="M42 29 V52"/>
+      <path d="M42 36 L30 42"/>
+      <path d="M42 36 L54 42"/>
+      <path d="M42 52 L62 70 L74 86"/>
+      <path d="M42 52 L28 76 L18 86"/>
+      <path d="M12 86 H30"/>
+      <path d="M68 86 H82"/>
+    `),
+    bridge: SVG(`
+      <circle cx="22" cy="60" r="6" fill="currentColor" stroke="none"/>
+      <path d="M28 60 Q 50 25 78 64"/>
+      <path d="M78 64 L78 86"/>
+      <path d="M70 86 H86"/>
+      <path d="M16 86 H32"/>
+    `),
+    band: SVG(`
+      <path d="M14 50 L28 32 L42 60 L56 32 L70 60 L86 50"/>
+      <path d="M10 44 L10 56 L20 50 Z" fill="currentColor"/>
+      <path d="M90 44 L90 56 L80 50 Z" fill="currentColor"/>
+    `),
+    ball: SVG(`
+      <circle cx="50" cy="60" r="26"/>
+      <ellipse cx="50" cy="60" rx="26" ry="8" stroke-width="1.2"/>
+      <line x1="24" y1="60" x2="76" y2="60" stroke-width="1.2"/>
+      <circle cx="58" cy="22" r="5" fill="currentColor" stroke="none"/>
+      <path d="M58 27 L58 40 L46 50"/>
+    `),
+    calf: SVG(`
+      <path d="M50 8 L60 20 L54 20 L54 56 L62 56 L50 80 L38 56 L46 56 L46 20 L40 20 Z"/>
+      <path d="M30 90 H70"/>
+    `),
+    core: SVG(`
+      <circle cx="20" cy="55" r="6" fill="currentColor" stroke="none"/>
+      <path d="M26 55 H60"/>
+      <path d="M60 55 L78 36"/>
+      <path d="M40 55 L36 32"/>
+      <path d="M55 55 L72 70"/>
+      <path d="M14 88 H86"/>
+    `),
+  };
+
+  // -----------------------------------------------------------------------------
+  // DATA: EXERCISES + PROGRAM
+  // -----------------------------------------------------------------------------
+  const EXERCISES = {
+    'walk-in-place': {
+      id: 'walk-in-place', name: 'Yerinde yürüyüş',
+      mode: 'time', duration: 60,
+      tips: ['Hafif tempoda, kalçadan diz yükselsin', 'Topuk–parmak dengeli basın'],
+      svgKey: 'walk',
+    },
+    'monster-walk': {
+      id: 'monster-walk', name: 'Monster walk (bantla yan adım)',
+      mode: 'reps', repText: '10 adım × 2 yön',
+      tips: ['Bant dizlerin hemen üstünde', 'Kalça düşmesin', 'Dizler ayak parmak hizasında'],
+      svgKey: 'band',
+    },
+    'calf-raises': {
+      id: 'calf-raises', name: 'Calf raises',
+      mode: 'reps', repText: '15 tekrar',
+      tips: ['Tam yükselme, kontrollü iniş', 'Gerekirse duvara hafif tutun'],
+      svgKey: 'calf',
+    },
+    'quad-isometric': {
+      id: 'quad-isometric', name: 'Kuadriseps izometrik sıkma',
+      mode: 'hold', holdSec: 10, rounds: 5, restBetween: 5,
+      tips: ['Diz arkasını yere bastır', 'Ön uyluk kasını sıkıca kasıp 10 sn tut'],
+      svgKey: 'core',
+    },
+    'goblet-squat': {
+      id: 'goblet-squat', name: 'Goblet squat (8 kg kettlebell)',
+      mode: 'reps', repText: '12 tekrar',
+      tips: ['Kettlebell göğüs hizasında, topuklar yerde', 'Diz ayak parmak yönünde',
+             'Ağrısız derinliğe kadar — diz ayak hizasını geçmesin (menüsküs!)'],
+      svgKey: 'squat',
+    },
+    'reverse-lunge': {
+      id: 'reverse-lunge', name: 'Reverse lunge (dambıl)',
+      mode: 'reps', repText: '10 tekrar / bacak',
+      tips: ['Geriye adım, ön dizde 90°, gövde dik',
+             'Reverse lunge ileri lunge’dan menüsküs için daha güvenli'],
+      svgKey: 'lunge',
+    },
+    'single-leg-glute-bridge': {
+      id: 'single-leg-glute-bridge', name: 'Single-leg glute bridge (pilates topu + kettlebell)',
+      mode: 'reps', repText: '12 tekrar / bacak',
+      tips: ['Pelvisi yatay tut', 'Alt sırtı aşırı kavislendirme', 'Glute’tan kalk'],
+      svgKey: 'bridge',
+    },
+    'kb-rdl': {
+      id: 'kb-rdl', name: 'Kettlebell Romanian deadlift',
+      mode: 'interval', workSec: 40, restSec: 20,
+      tips: ['Kalçadan kır, sırt düz', 'Kettlebell bacaklara yakın',
+             'Diz hafif bükük, hareket kalçadan'],
+      svgKey: 'bridge',
+    },
+    'db-shadow-boxing': {
+      id: 'db-shadow-boxing', name: 'Dambıl shadow boxing',
+      mode: 'interval', workSec: 40, restSec: 20,
+      tips: ['Dambıl 1–2 kg’ı geçmesin', 'Darbeyi sonuna kadar uzatma (omuz koruması)',
+             'Ayaklar sabit'],
+      svgKey: 'core',
+    },
+    'dead-bug': {
+      id: 'dead-bug', name: 'Pilates topu dead bug',
+      mode: 'interval', workSec: 40, restSec: 20,
+      tips: ['Bel yere yapışık', 'Topu eller–dizler arasında sıkıştır', 'Çapraz uzantı'],
+      svgKey: 'ball',
+    },
+    'pallof-press': {
+      id: 'pallof-press', name: 'Bant ile pallof press',
+      mode: 'interval', workSec: 40, restSec: 20,
+      tips: ['Yan duruş, bantı göğüsten dışa it',
+             'Gövde dönmeye çalışacak — direnci hisset ama dönme'],
+      svgKey: 'band',
+    },
+    'band-leg-extension': {
+      id: 'band-leg-extension', name: 'Bant ile leg extension',
+      mode: 'reps', repText: '15 tekrar × 2 set',
+      tips: ['Oturarak, ayağa bant', 'Son 30°’ye odaklan, yavaş geri dön',
+             'Patellofemoral baskıyı azaltır'],
+      svgKey: 'band',
+    },
+    'prone-hamstring-curl': {
+      id: 'prone-hamstring-curl', name: 'Pilates topu prone hamstring curl',
+      mode: 'reps', repText: '15 tekrar × 2 set',
+      tips: ['Sırt üstü yat', 'Topu topuklarla bridge pozisyonunda çek', 'Glute aktif kalsın'],
+      svgKey: 'ball',
+    },
+    'seated-leg-curl': {
+      id: 'seated-leg-curl', name: 'Bant ile oturarak leg curl',
+      mode: 'reps', repText: '15 tekrar × 2 set',
+      tips: ['Bantı önden sabitle', 'Dizi bük, kontrollü'],
+      svgKey: 'band',
+    },
+    'single-leg-calf-raises': {
+      id: 'single-leg-calf-raises', name: 'Tek bacak calf raises',
+      mode: 'reps', repText: '15 tekrar × 2 set',
+      tips: ['Tam hareket aralığı', 'Gerekirse denge için duvara dokun'],
+      svgKey: 'calf',
+    },
+  };
+
+  const PROGRAM = [
+    { key: 'warmup',   name: 'Isınma',                 minutes: 4,  met: 3.0,
+      items: ['walk-in-place', 'monster-walk', 'calf-raises', 'quad-isometric'] },
+    { key: 'strength', name: 'Blok 1 · Güç süperseti', minutes: 10, met: 5.0,
+      rounds: 3, restSec: 30,
+      items: ['goblet-squat', 'reverse-lunge', 'single-leg-glute-bridge'] },
+    { key: 'hiit',     name: 'Blok 2 · HIIT',          minutes: 8,  met: 8.0,
+      rounds: 2, workSec: 40, restSec: 20,
+      items: ['kb-rdl', 'db-shadow-boxing', 'dead-bug', 'pallof-press'] },
+    { key: 'finisher', name: 'Blok 3 · İzole bitirme', minutes: 3,  met: 3.5,
+      sets: 2,
+      items: ['band-leg-extension', 'prone-hamstring-curl',
+              'seated-leg-curl', 'single-leg-calf-raises'] },
+  ];
+
+  const BIKE_MET = 7.0;
+
+  const BLOCK_BY_KEY = Object.fromEntries(PROGRAM.map(b => [b.key, b]));
+
+  function compileProgram() {
+    const steps = [];
+
+    // 1) Warmup
+    PROGRAM[0].items.forEach(id => {
+      const ex = EXERCISES[id];
+      if (ex.mode === 'time') {
+        steps.push({ kind: 'time', exerciseId: id, blockKey: 'warmup',
+                     label: ex.name, sublabel: 'Süre', duration: ex.duration,
+                     autoAdvance: true });
+      } else if (ex.mode === 'reps') {
+        steps.push({ kind: 'reps', exerciseId: id, blockKey: 'warmup',
+                     label: ex.name, sublabel: ex.repText,
+                     autoAdvance: false });
+      } else if (ex.mode === 'hold') {
+        steps.push({ kind: 'hold', exerciseId: id, blockKey: 'warmup',
+                     label: ex.name, sublabel: `${ex.holdSec} sn × ${ex.rounds}`,
+                     holdSec: ex.holdSec, rounds: ex.rounds, restBetween: ex.restBetween,
+                     autoAdvance: true });
+      }
+    });
+
+    // 2) Strength superset: rounds × items, rest between rounds
+    const sb = PROGRAM[1];
+    for (let r = 1; r <= sb.rounds; r++) {
+      sb.items.forEach(id => {
+        const ex = EXERCISES[id];
+        steps.push({ kind: 'reps', exerciseId: id, blockKey: 'strength',
+                     label: ex.name, sublabel: ex.repText,
+                     round: r, totalRounds: sb.rounds, autoAdvance: false });
+      });
+      if (r < sb.rounds) {
+        steps.push({ kind: 'rest', blockKey: 'strength',
+                     label: 'Dinlenme', sublabel: `Tur ${r}/${sb.rounds} bitti — sıradaki tur`,
+                     duration: sb.restSec, autoAdvance: true });
+      }
+    }
+
+    // 3) HIIT: rounds × items × (work + rest)
+    const hb = PROGRAM[2];
+    for (let r = 1; r <= hb.rounds; r++) {
+      hb.items.forEach((id, idx) => {
+        const ex = EXERCISES[id];
+        const nextId = hb.items[idx + 1] ||
+                       (r < hb.rounds ? hb.items[0] : null);
+        const nextName = nextId ? EXERCISES[nextId].name : 'Blok bitti';
+        steps.push({ kind: 'work', exerciseId: id, blockKey: 'hiit',
+                     label: ex.name, sublabel: 'Çalış',
+                     duration: ex.workSec, round: r, totalRounds: hb.rounds,
+                     autoAdvance: true });
+        steps.push({ kind: 'rest', exerciseId: id, blockKey: 'hiit',
+                     label: 'Dinlenme', sublabel: `Sıradaki: ${nextName}`,
+                     duration: ex.restSec, round: r, totalRounds: hb.rounds,
+                     autoAdvance: true });
+      });
+    }
+
+    // 4) Finisher: items × sets
+    const fb = PROGRAM[3];
+    fb.items.forEach(id => {
+      const ex = EXERCISES[id];
+      for (let s = 1; s <= fb.sets; s++) {
+        steps.push({ kind: 'reps', exerciseId: id, blockKey: 'finisher',
+                     label: ex.name, sublabel: `Set ${s}/${fb.sets} · 15 tekrar`,
+                     set: s, totalSets: fb.sets, autoAdvance: false });
+      }
+    });
+
+    steps.push({ kind: 'done', label: 'Antrenman Tamam!' });
+    steps.forEach((s, i) => s.index = i);
+    return steps;
+  }
+
+  // -----------------------------------------------------------------------------
+  // STORE: localStorage
+  // -----------------------------------------------------------------------------
+  const Store = {
+    KEY: 'meniscus.v1',
+    cache: null,
+
+    load() {
+      if (Store.cache) return Store.cache;
+      try {
+        const raw = localStorage.getItem(Store.KEY);
+        if (raw) {
+          const data = JSON.parse(raw);
+          if (data && data.version === 1 && Array.isArray(data.completions)) {
+            if (typeof data.weightKg !== 'number') data.weightKg = 70;
+            Store.cache = data;
+            return data;
+          }
+        }
+      } catch (e) {}
+      Store.cache = { version: 1, weightKg: 70, completions: [] };
+      return Store.cache;
+    },
+
+    save() {
+      try { localStorage.setItem(Store.KEY, JSON.stringify(Store.cache)); } catch (e) {}
+    },
+
+    getWeight() { return Store.load().weightKg; },
+    setWeight(kg) {
+      const n = Number(kg);
+      if (!isFinite(n)) return;
+      Store.load().weightKg = Math.max(20, Math.min(250, Math.round(n)));
+      Store.save();
+    },
+
+    recordCompletion(type, durationSec, kcal) {
+      const data = Store.load();
+      const date = todayISO();
+      const existing = data.completions.find(c => c.date === date && c.type === type);
+      if (existing) {
+        existing.durationSec += Math.round(durationSec);
+        existing.kcal = Math.round((existing.kcal || 0) + kcal);
+      } else {
+        data.completions.push({
+          date, type,
+          durationSec: Math.round(durationSec),
+          kcal: Math.round(kcal),
+        });
+      }
+      Store.save();
+    },
+
+    getStats() {
+      const data = Store.load();
+      const totalWorkouts = data.completions.filter(c => c.type === 'workout').length;
+      const totalBike = data.completions.filter(c => c.type === 'bike').length;
+      const totalKcal = data.completions.reduce((s, c) => s + (c.kcal || 0), 0);
+      const totalDuration = data.completions.reduce((s, c) => s + (c.durationSec || 0), 0);
+      return {
+        totalWorkouts, totalBike, totalKcal, totalDuration,
+        weekKcal: Store.weekKcal(),
+        streak: Store.computeStreak(),
+      };
+    },
+
+    weekKcal() {
+      const data = Store.load();
+      const monday = Store.mondayISO(new Date());
+      return data.completions
+        .filter(c => c.date >= monday)
+        .reduce((s, c) => s + (c.kcal || 0), 0);
+    },
+
+    computeStreak() {
+      const data = Store.load();
+      const set = new Set(data.completions.map(c => c.date));
+      const today = new Date(); today.setHours(0, 0, 0, 0);
+      const todayStr = isoOf(today);
+      let streak = 0;
+      for (let i = 0; i < 365; i++) {
+        const d = new Date(today); d.setDate(d.getDate() - i);
+        const iso = isoOf(d);
+        const dow = d.getDay(); // 0=Sun, 4=Thu
+        const isRest = (dow === 4 || dow === 0);
+        if (set.has(iso)) { streak++; continue; }
+        if (isRest) continue;
+        if (iso === todayStr) continue;
+        break;
+      }
+      return streak;
+    },
+
+    mondayISO(d) {
+      const date = new Date(d); date.setHours(0, 0, 0, 0);
+      const dow = (date.getDay() + 6) % 7; // Mon=0
+      date.setDate(date.getDate() - dow);
+      return isoOf(date);
+    },
+
+    weekHeatmap() {
+      const data = Store.load();
+      const map = {};
+      data.completions.forEach(c => {
+        if (!map[c.date]) map[c.date] = new Set();
+        map[c.date].add(c.type);
+      });
+      const today = new Date(); today.setHours(0, 0, 0, 0);
+      const todayStr = isoOf(today);
+      const monday = new Date(today);
+      monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7));
+      const cells = [];
+      for (let i = 0; i < 7; i++) {
+        const d = new Date(monday); d.setDate(d.getDate() + i);
+        const iso = isoOf(d);
+        const dow = d.getDay();
+        const isRest = (dow === 4 || dow === 0);
+        const isToday = (iso === todayStr);
+        const isPast = (iso < todayStr);
+        let state;
+        if (map[iso]) state = 'done';
+        else if (isRest) state = 'rest';
+        else if (isToday) state = 'today';
+        else if (isPast) state = 'missed';
+        else state = 'upcoming';
+        cells.push({ iso, dow, state, types: map[iso] ? Array.from(map[iso]) : [] });
+      }
+      return cells;
+    },
+
+    monthHeatmap(weeks = 8) {
+      const data = Store.load();
+      const map = {};
+      data.completions.forEach(c => { map[c.date] = true; });
+      const today = new Date(); today.setHours(0, 0, 0, 0);
+      const start = new Date(today);
+      start.setDate(start.getDate() - (weeks * 7 - 1));
+      // Align to Monday
+      while (((start.getDay() + 6) % 7) !== 0) {
+        start.setDate(start.getDate() - 1);
+      }
+      const cells = [];
+      const total = Math.ceil((today - start) / 86400000) + 1;
+      for (let i = 0; i < total; i++) {
+        const d = new Date(start); d.setDate(d.getDate() + i);
+        const iso = isoOf(d);
+        cells.push({ iso, dow: d.getDay(), done: !!map[iso] });
+      }
+      return cells;
+    },
+  };
+
+  // -----------------------------------------------------------------------------
+  // FX: wake lock / vibration / web audio (all capability-gated)
+  // -----------------------------------------------------------------------------
+  const FX = {
+    wakeLock: null,
+    _ctx: null,
+
+    async requestWakeLock() {
+      if (!('wakeLock' in navigator)) return;
+      try { FX.wakeLock = await navigator.wakeLock.request('screen'); }
+      catch (e) { /* ignore */ }
+    },
+
+    async releaseWakeLock() {
+      try { await FX.wakeLock?.release(); } catch (e) {}
+      FX.wakeLock = null;
+    },
+
+    vibrate(pattern) {
+      if (navigator.vibrate) { try { navigator.vibrate(pattern); } catch (e) {} }
+    },
+
+    ensureAudio() {
+      if (!FX._ctx) {
+        const AC = window.AudioContext || window.webkitAudioContext;
+        if (AC) {
+          try { FX._ctx = new AC(); } catch (e) {}
+        }
+      }
+      if (FX._ctx && FX._ctx.state === 'suspended') {
+        FX._ctx.resume().catch(() => {});
+      }
+    },
+
+    beep(freq, ms) {
+      const ctx = FX._ctx;
+      if (!ctx) return;
+      try {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.frequency.value = freq;
+        osc.type = 'sine';
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        const t = ctx.currentTime;
+        gain.gain.setValueAtTime(0.0001, t);
+        gain.gain.exponentialRampToValueAtTime(0.22, t + 0.012);
+        gain.gain.exponentialRampToValueAtTime(0.0001, t + ms / 1000);
+        osc.start(t);
+        osc.stop(t + ms / 1000 + 0.05);
+      } catch (e) {}
+    },
+
+    signalEnd()   { FX.beep(880, 220); setTimeout(() => FX.beep(1175, 260), 230); FX.vibrate([220, 90, 220]); },
+    signalWork()  { FX.beep(740, 160); FX.vibrate(150); },
+    signalRest()  { FX.beep(440, 160); FX.vibrate(90); },
+    signalFinish(){ FX.beep(880, 200); setTimeout(() => FX.beep(1100, 200), 210); setTimeout(() => FX.beep(1320, 320), 430); FX.vibrate([300, 100, 300, 100, 500]); },
+  };
+
+  // -----------------------------------------------------------------------------
+  // UTILITIES
+  // -----------------------------------------------------------------------------
+  function isoOf(d) {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  }
+  function todayISO() { return isoOf(new Date()); }
+
+  function fmtMMSS(secs) {
+    secs = Math.max(0, Math.round(secs));
+    const m = Math.floor(secs / 60), s = secs % 60;
+    return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+  }
+  function fmtDuration(secs) {
+    secs = Math.round(secs);
+    if (secs < 60) return `${secs} sn`;
+    const m = Math.floor(secs / 60), s = secs % 60;
+    return s ? `${m} dk ${s} sn` : `${m} dk`;
+  }
+
+  const TR_DAYS = ['Pazar', 'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi'];
+  const TR_DAYS_SHORT = ['Paz', 'Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt'];
+
+  function scheduledType(dow) {
+    // 1 Mon, 3 Wed, 5 Fri = workout; 2 Tue, 6 Sat = bike; 4 Thu, 0 Sun = rest
+    if (dow === 1 || dow === 3 || dow === 5) return 'workout';
+    if (dow === 2 || dow === 6) return 'bike';
+    return 'rest';
+  }
+  const TYPE_TR = { workout: 'Antrenman', bike: 'Bisiklet', rest: 'Dinlenme' };
+
+  function el(tag, attrs = {}, children = []) {
+    const e = document.createElement(tag);
+    for (const [k, v] of Object.entries(attrs)) {
+      if (k === 'class') e.className = v;
+      else if (k === 'html') e.innerHTML = v;
+      else if (k.startsWith('on') && typeof v === 'function') e.addEventListener(k.slice(2), v);
+      else if (v === false || v == null) {/* skip */}
+      else e.setAttribute(k, v);
+    }
+    if (!Array.isArray(children)) children = [children];
+    children.forEach(c => {
+      if (c == null || c === false) return;
+      if (typeof c === 'string') e.appendChild(document.createTextNode(c));
+      else e.appendChild(c);
+    });
+    return e;
+  }
+
+  // GIF loader with skeleton + SVG fallback
+  function gifBox(exerciseId, opts = {}) {
+    const ex = EXERCISES[exerciseId];
+    const box = el('div', {
+      class: 'relative w-full aspect-video rounded-xl overflow-hidden bg-slate-200 dark:bg-slate-800 ring-1 ring-slate-200 dark:ring-slate-700',
+    });
+    const skel = el('div', { class: 'absolute inset-0 skeleton' });
+    box.appendChild(skel);
+
+    if (!ex) return box;
+
+    const img = new Image();
+    img.alt = ex.name;
+    img.className = 'absolute inset-0 w-full h-full object-cover opacity-0 transition-opacity';
+    img.onload = () => {
+      skel.remove();
+      img.style.opacity = '1';
+      box.appendChild(img);
+    };
+    img.onerror = () => {
+      skel.remove();
+      const fb = el('div', {
+        class: 'absolute inset-0 flex flex-col items-center justify-center p-3 text-center',
+        html: SVG_FALLBACKS[ex.svgKey] || SVG_FALLBACKS.core,
+      });
+      // The html replaces children, so wrap and add caption
+      box.appendChild(fb);
+      const cap = el('div', {
+        class: 'absolute bottom-1 left-0 right-0 text-[10px] text-slate-500 dark:text-slate-400 text-center px-2',
+      }, [`GIF eksik · assets/gifs/${ex.id}.gif`]);
+      box.appendChild(cap);
+    };
+    // Trigger load
+    img.src = `assets/gifs/${ex.id}.gif?v=1`;
+    return box;
+  }
+
+  function preloadGif(exerciseId) {
+    if (!exerciseId || !EXERCISES[exerciseId]) return;
+    const i = new Image();
+    i.src = `assets/gifs/${exerciseId}.gif?v=1`;
+  }
+
+  // -----------------------------------------------------------------------------
+  // ENGINE: workout / bike timer
+  // -----------------------------------------------------------------------------
+  const Engine = {
+    steps: [], stepIndex: 0,
+    running: false, paused: false,
+    endsAt: 0, remainingFrozen: 0,
+    rafId: null,
+    subRound: 1, inHoldRest: false,
+    startedAt: 0,
+    ui: {},   // cached refs for active screen
+    mode: null, // 'workout' | 'bike'
+
+    // ---- WORKOUT ----
+    startWorkout() {
+      Engine.mode = 'workout';
+      Engine.steps = compileProgram();
+      Engine.stepIndex = 0;
+      Engine.running = true;
+      Engine.paused = false;
+      Engine.startedAt = Date.now();
+      FX.ensureAudio();
+      FX.requestWakeLock();
+      Screens.mountActive();
+      Engine.enterStep(0);
+    },
+
+    enterStep(i) {
+      Engine.cancelLoop();
+      if (i < 0) i = 0;
+      if (i >= Engine.steps.length) i = Engine.steps.length - 1;
+      Engine.stepIndex = i;
+      const step = Engine.steps[i];
+
+      // Preload next exercise GIF if any
+      const next = Engine.steps[i + 1];
+      if (next && next.exerciseId) preloadGif(next.exerciseId);
+
+      if (step.kind === 'done') {
+        Engine.finishWorkout();
+        return;
+      }
+
+      // Reset hold sub-state on entry
+      if (step.kind === 'hold') {
+        Engine.subRound = 1;
+        Engine.inHoldRest = false;
+      }
+
+      Screens.renderActiveStep(step);
+
+      if (step.kind === 'reps') {
+        // No timer; user will tap "Bitti"
+        return;
+      }
+
+      // Phase-start cue: distinct beep for work vs rest
+      if (step.kind === 'work') FX.signalWork();
+      if (step.kind === 'rest') FX.signalRest();
+
+      if (step.kind === 'hold') {
+        Engine.startCountdown(step.holdSec);
+      } else {
+        Engine.startCountdown(step.duration);
+      }
+    },
+
+    startCountdown(secs) {
+      Engine.endsAt = Date.now() + secs * 1000;
+      Engine.loop();
+    },
+
+    loop() {
+      if (!Engine.running || Engine.paused) return;
+      const remainingMs = Engine.endsAt - Date.now();
+      if (remainingMs <= 0) {
+        Engine.onTimerComplete();
+        return;
+      }
+      Screens.updateCountdown(Math.ceil(remainingMs / 1000));
+      Engine.rafId = requestAnimationFrame(Engine.loop);
+    },
+
+    onTimerComplete() {
+      Engine.cancelLoop();
+      const step = Engine.steps[Engine.stepIndex];
+
+      if (step.kind === 'hold') {
+        if (!Engine.inHoldRest) {
+          // finished a 10s hold
+          if (Engine.subRound >= step.rounds) {
+            FX.signalEnd();
+            Engine.next();
+            return;
+          }
+          // signal end of this hold (short cue), then rest between
+          FX.signalRest();
+          Engine.inHoldRest = true;
+          Screens.updateCountdown(step.restBetween);
+          Engine.startCountdown(step.restBetween);
+          return;
+        } else {
+          // finished rest between holds
+          Engine.subRound++;
+          Engine.inHoldRest = false;
+          FX.signalWork();
+          Screens.renderActiveStep(step); // refresh subRound display
+          Engine.startCountdown(step.holdSec);
+          return;
+        }
+      }
+
+      // For all other timed kinds, beep + advance
+      FX.signalEnd();
+      Engine.next();
+    },
+
+    cancelLoop() {
+      if (Engine.rafId) cancelAnimationFrame(Engine.rafId);
+      Engine.rafId = null;
+    },
+
+    next() { Engine.enterStep(Engine.stepIndex + 1); },
+    prev() {
+      // From mid-step: restart current; if already at start, go to previous
+      const step = Engine.steps[Engine.stepIndex];
+      if (step && (step.kind === 'time' || step.kind === 'work' ||
+                   step.kind === 'rest' || step.kind === 'hold')) {
+        const remainingMs = Engine.endsAt - Date.now();
+        const total = step.kind === 'hold' ?
+          (Engine.inHoldRest ? step.restBetween : step.holdSec) :
+          step.duration;
+        const elapsed = total * 1000 - remainingMs;
+        if (elapsed > 3000) {
+          // restart current step from scratch
+          Engine.enterStep(Engine.stepIndex);
+          return;
+        }
+      }
+      Engine.enterStep(Engine.stepIndex - 1);
+    },
+    skip() { Engine.next(); },
+    done() {
+      const step = Engine.steps[Engine.stepIndex];
+      if (step && step.kind === 'reps') Engine.next();
+    },
+
+    pause() {
+      if (Engine.paused || !Engine.running) return;
+      Engine.paused = true;
+      const step = Engine.steps[Engine.stepIndex];
+      if (step && step.kind !== 'reps' && step.kind !== 'done') {
+        Engine.remainingFrozen = Math.max(0, Math.ceil((Engine.endsAt - Date.now()) / 1000));
+      }
+      Engine.cancelLoop();
+      FX.releaseWakeLock();
+      Screens.updatePauseUI(true);
+    },
+
+    resume() {
+      if (!Engine.paused) return;
+      Engine.paused = false;
+      FX.requestWakeLock();
+      const step = Engine.steps[Engine.stepIndex];
+      if (step && step.kind !== 'reps' && step.kind !== 'done') {
+        Engine.endsAt = Date.now() + Engine.remainingFrozen * 1000;
+        Engine.loop();
+      }
+      Screens.updatePauseUI(false);
+    },
+
+    togglePause() { Engine.paused ? Engine.resume() : Engine.pause(); },
+
+    // --- KCAL ---
+    computeKcal() {
+      const w = Store.getWeight();
+      let total = 0;
+      PROGRAM.forEach(b => { total += b.met * w * (b.minutes / 60); });
+      return Math.round(total);
+    },
+
+    computeLiveKcal() {
+      const w = Store.getWeight();
+      // Map of block -> {done, total}
+      const prog = {};
+      PROGRAM.forEach(b => { prog[b.key] = { done: 0, total: 0 }; });
+      Engine.steps.forEach((s, i) => {
+        if (s.kind === 'done' || !s.blockKey) return;
+        if (!prog[s.blockKey]) return;
+        prog[s.blockKey].total++;
+        if (i < Engine.stepIndex) prog[s.blockKey].done++;
+      });
+      let kcal = 0;
+      PROGRAM.forEach(b => {
+        const p = prog[b.key];
+        const ratio = p.total > 0 ? p.done / p.total : 0;
+        kcal += b.met * w * (b.minutes / 60) * ratio;
+      });
+      return Math.round(kcal);
+    },
+
+    finishWorkout() {
+      Engine.cancelLoop();
+      Engine.running = false;
+      FX.releaseWakeLock();
+      FX.signalFinish();
+      const durationSec = Math.round((Date.now() - Engine.startedAt) / 1000);
+      const kcal = Engine.computeKcal();
+      Store.recordCompletion('workout', durationSec, kcal);
+      Screens.showWorkoutSummary({ durationSec, kcal });
+    },
+
+    teardown() {
+      Engine.cancelLoop();
+      FX.releaseWakeLock();
+      Engine.running = false;
+      Engine.paused = false;
+      Engine.mode = null;
+      Engine.ui = {};
+    },
+
+    // ---- BIKE ----
+    bike: { running: false, paused: false, endsAt: 0, remainingFrozen: 0,
+            rafId: null, startedAt: 0, minutes: 30, ui: {} },
+
+    startBike(minutes) {
+      Engine.bike.minutes = minutes;
+      Engine.bike.running = true;
+      Engine.bike.paused = false;
+      Engine.bike.startedAt = Date.now();
+      Engine.bike.endsAt = Date.now() + minutes * 60 * 1000;
+      Engine.mode = 'bike';
+      FX.ensureAudio();
+      FX.requestWakeLock();
+      Engine.bikeLoop();
+      Screens.renderBikeRunning();
+    },
+
+    bikeLoop() {
+      if (!Engine.bike.running || Engine.bike.paused) return;
+      const remainingMs = Engine.bike.endsAt - Date.now();
+      if (remainingMs <= 0) {
+        Engine.finishBike();
+        return;
+      }
+      Screens.updateBikeCountdown(Math.ceil(remainingMs / 1000));
+      Engine.bike.rafId = requestAnimationFrame(Engine.bikeLoop);
+    },
+
+    pauseBike() {
+      if (Engine.bike.paused || !Engine.bike.running) return;
+      Engine.bike.paused = true;
+      Engine.bike.remainingFrozen = Math.max(0, Math.ceil((Engine.bike.endsAt - Date.now()) / 1000));
+      if (Engine.bike.rafId) cancelAnimationFrame(Engine.bike.rafId);
+      Engine.bike.rafId = null;
+      FX.releaseWakeLock();
+      Screens.updateBikePauseUI(true);
+    },
+
+    resumeBike() {
+      if (!Engine.bike.paused) return;
+      Engine.bike.paused = false;
+      Engine.bike.endsAt = Date.now() + Engine.bike.remainingFrozen * 1000;
+      FX.requestWakeLock();
+      Engine.bikeLoop();
+      Screens.updateBikePauseUI(false);
+    },
+
+    togglePauseBike() { Engine.bike.paused ? Engine.resumeBike() : Engine.pauseBike(); },
+
+    stopBike(saveProgress) {
+      if (Engine.bike.rafId) cancelAnimationFrame(Engine.bike.rafId);
+      Engine.bike.rafId = null;
+      const elapsedSec = Math.round((Date.now() - Engine.bike.startedAt) / 1000);
+      const w = Store.getWeight();
+      const kcal = Math.round(BIKE_MET * w * (elapsedSec / 3600));
+      Engine.bike.running = false;
+      FX.releaseWakeLock();
+      Engine.mode = null;
+      if (saveProgress && elapsedSec >= 60) {
+        Store.recordCompletion('bike', elapsedSec, kcal);
+      }
+      return { durationSec: elapsedSec, kcal };
+    },
+
+    finishBike() {
+      if (Engine.bike.rafId) cancelAnimationFrame(Engine.bike.rafId);
+      Engine.bike.rafId = null;
+      const elapsedSec = Engine.bike.minutes * 60;
+      const w = Store.getWeight();
+      const kcal = Math.round(BIKE_MET * w * (Engine.bike.minutes / 60));
+      Engine.bike.running = false;
+      FX.releaseWakeLock();
+      FX.signalFinish();
+      Engine.mode = null;
+      Store.recordCompletion('bike', elapsedSec, kcal);
+      Screens.showBikeSummary({ durationSec: elapsedSec, kcal });
+    },
+  };
+
+  // -----------------------------------------------------------------------------
+  // SCREENS
+  // -----------------------------------------------------------------------------
+  const Screens = {
+
+    // ---- HOME ----
+    home() {
+      const today = new Date();
+      const dow = today.getDay();
+      const type = scheduledType(dow);
+      const stats = Store.getStats();
+      const weekCells = Store.weekHeatmap();
+
+      const todayCard = el('div', { class: 'rounded-2xl p-5 bg-gradient-to-br from-brand-600 to-brand-700 text-white shadow-lg' }, [
+        el('div', { class: 'text-sm/5 opacity-90' }, [TR_DAYS[dow] + ' · Bugün']),
+        el('div', { class: 'mt-1 text-2xl font-semibold' }, [
+          type === 'workout' ? '25 dk Rehab + HIIT' :
+          type === 'bike'    ? 'Bisiklet 30–45 dk' :
+                               'Dinlenme günü',
+        ]),
+        el('div', { class: 'mt-1 text-sm opacity-90' }, [
+          type === 'workout' ? 'Isınma · Güç · HIIT · İzole bitirme' :
+          type === 'bike'    ? 'Hafif–orta tempo, ağrı yapmayan vites' :
+                               'Aktif dinlenme: yürüyüş veya esneme',
+        ]),
+        el('div', { class: 'mt-4 flex flex-wrap gap-2' }, [
+          el('button', {
+            class: 'tap flex-1 min-w-[140px] rounded-xl bg-white text-brand-700 font-semibold px-4 py-3 hover:bg-brand-50 active:bg-brand-100 transition',
+            onclick: () => location.hash = '#exercises',
+          }, ['Antrenmanı Başlat']),
+          el('button', {
+            class: 'tap rounded-xl bg-white/15 text-white font-medium px-4 py-3 hover:bg-white/25 active:bg-white/30 transition',
+            onclick: () => location.hash = '#bike',
+          }, ['Bisiklet']),
+        ]),
+      ]);
+
+      const calendar = el('div', { class: 'mt-6' }, [
+        el('div', { class: 'flex items-baseline justify-between mb-2' }, [
+          el('h2', { class: 'text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400' }, ['Haftalık plan']),
+          el('span', { class: 'text-xs text-slate-400' }, ['Pzt başlangıç']),
+        ]),
+        el('div', { class: 'grid grid-cols-7 gap-1.5' }, weekCells.map(c => {
+          const stype = scheduledType(c.dow);
+          const isToday = c.iso === todayISO();
+          let bg, fg, icon;
+          if (c.state === 'done') {
+            bg = 'bg-brand-600 dark:bg-brand-500 text-white';
+            icon = '✓';
+          } else if (c.state === 'today') {
+            bg = 'bg-brand-50 dark:bg-brand-900/40 ring-2 ring-brand-500 text-brand-800 dark:text-brand-200';
+            icon = stype === 'rest' ? '·' : (stype === 'bike' ? '🚴' : '●');
+          } else if (c.state === 'rest') {
+            bg = 'bg-slate-100 dark:bg-slate-800/60 text-slate-400 dark:text-slate-500';
+            icon = '·';
+          } else if (c.state === 'missed') {
+            bg = 'bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500';
+            icon = '–';
+          } else {
+            bg = 'bg-slate-100 dark:bg-slate-800/60 text-slate-500 dark:text-slate-400';
+            icon = stype === 'bike' ? '🚴' : (stype === 'workout' ? '●' : '·');
+          }
+          return el('div', {
+            class: `flex flex-col items-center justify-center rounded-lg py-2 text-xs ${bg}`,
+            title: `${TR_DAYS[c.dow]} · ${TYPE_TR[stype]}`,
+          }, [
+            el('span', { class: 'text-[10px] opacity-80' }, [TR_DAYS_SHORT[c.dow]]),
+            el('span', { class: 'mt-0.5 text-base leading-none' }, [icon]),
+          ]);
+        })),
+        el('div', { class: 'mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-slate-500 dark:text-slate-400' }, [
+          el('span', {}, ['● Pzt/Çar/Cum: antrenman']),
+          el('span', {}, ['🚴 Sal/Cmt: bisiklet']),
+          el('span', {}, ['· Per/Paz: dinlenme']),
+        ]),
+      ]);
+
+      // Stats row
+      const statsRow = el('div', { class: 'mt-6 grid grid-cols-3 gap-2' }, [
+        statCard(stats.totalWorkouts, 'antrenman'),
+        statCard(stats.streak, 'gün serisi'),
+        statCard(stats.totalKcal, 'toplam kcal'),
+      ]);
+
+      // Weight input
+      const wInput = el('input', {
+        type: 'number', inputmode: 'numeric', min: '20', max: '250', step: '1',
+        value: String(Store.getWeight()),
+        class: 'tap w-20 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2 py-2 text-center tab-num',
+        onchange: (e) => {
+          Store.setWeight(e.target.value);
+          e.target.value = String(Store.getWeight());
+        },
+      });
+      const weightRow = el('div', { class: 'mt-6 rounded-xl bg-white dark:bg-slate-900 ring-1 ring-slate-200 dark:ring-slate-800 p-4 flex items-center gap-3' }, [
+        el('div', { class: 'flex-1' }, [
+          el('div', { class: 'text-sm font-medium' }, ['Kilonuz']),
+          el('div', { class: 'text-xs text-slate-500 dark:text-slate-400' }, ['Yakılan kalori hesabı için kullanılır']),
+        ]),
+        wInput,
+        el('span', { class: 'text-sm text-slate-500' }, ['kg']),
+      ]);
+
+      const disclaimer = el('p', {
+        class: 'mt-6 mb-2 text-[11px] leading-snug text-slate-500 dark:text-slate-400 text-center px-2',
+      }, [
+        'Bu program menüsküs tamiri sonrası kişisel rehabilitasyon protokolüme göre düzenlenmiştir. Fizyoterapist onayı ile uygulanmaktadır. Ağrı veya şişlik durumunda durdurun.',
+      ]);
+
+      return el('div', { class: 'space-y-2' }, [
+        el('header', { class: 'mb-4 flex items-center justify-between' }, [
+          el('div', {}, [
+            el('h1', { class: 'text-xl font-bold' }, ['Menüsküs Rehab']),
+            el('div', { class: 'text-xs text-slate-500 dark:text-slate-400' }, ['Rehabilitasyon + HIIT · 25 dk']),
+          ]),
+          el('div', {
+            class: 'w-10 h-10 rounded-full bg-brand-100 dark:bg-brand-900/40 text-brand-700 dark:text-brand-300 flex items-center justify-center',
+            html: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-4.5-7-10a4 4 0 0 1 7-2.65A4 4 0 0 1 19 11c0 5.5-7 10-7 10z"/></svg>',
+          }),
+        ]),
+        todayCard,
+        calendar,
+        statsRow,
+        weightRow,
+        disclaimer,
+      ]);
+    },
+
+    // ---- EXERCISE LIST (pre-workout overview) ----
+    exerciseList() {
+      const root = el('div', { class: 'space-y-5' }, []);
+
+      root.appendChild(el('header', { class: 'flex items-center justify-between' }, [
+        el('div', {}, [
+          el('h1', { class: 'text-xl font-bold' }, ['Bugünün Programı']),
+          el('div', { class: 'text-xs text-slate-500 dark:text-slate-400' }, ['25 dk · Sırayla yapın']),
+        ]),
+        el('a', {
+          href: '#home',
+          class: 'tap px-3 py-2 rounded-lg text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800',
+        }, ['‹ Geri']),
+      ]));
+
+      PROGRAM.forEach(block => {
+        const blockEl = el('section', { class: 'space-y-2' }, [
+          el('div', { class: 'flex items-baseline justify-between' }, [
+            el('h2', { class: 'text-sm font-semibold uppercase tracking-wide text-brand-700 dark:text-brand-300' }, [block.name]),
+            el('span', { class: 'text-xs text-slate-500 dark:text-slate-400' }, [
+              `${block.minutes} dk` +
+              (block.rounds ? ` · ${block.rounds} tur` : '') +
+              (block.sets ? ` · ${block.sets} set` : ''),
+            ]),
+          ]),
+        ]);
+        block.items.forEach(id => {
+          blockEl.appendChild(exerciseCard(id));
+        });
+        root.appendChild(blockEl);
+      });
+
+      root.appendChild(el('button', {
+        class: 'tap w-full rounded-xl bg-brand-600 hover:bg-brand-700 active:bg-brand-800 text-white font-semibold text-lg px-4 py-4 transition shadow',
+        onclick: () => {
+          FX.ensureAudio();
+          Engine.startWorkout();
+        },
+      }, ['Antrenmanı Başlat ▶']));
+
+      return root;
+    },
+
+    // ---- ACTIVE WORKOUT ----
+    mountActive() {
+      const root = document.getElementById('app');
+      // ensure we're on the right screen
+      if (location.hash !== '#workout') location.hash = '#workout';
+
+      const gifWrap = el('div', { class: 'w-full' });
+      const stepCounter = el('div', { class: 'text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400' }, ['']);
+      const blockName = el('div', { class: 'text-sm font-medium text-brand-700 dark:text-brand-300' }, ['']);
+      const title = el('h2', { class: 'mt-1 text-xl font-bold' }, ['']);
+      const sublabel = el('div', { class: 'text-sm text-slate-600 dark:text-slate-300' }, ['']);
+      const counter = el('div', {
+        class: 'mt-3 text-6xl font-bold tab-num text-slate-900 dark:text-slate-50 text-center',
+      }, ['']);
+      const subRoundEl = el('div', { class: 'mt-1 text-center text-sm text-slate-500 dark:text-slate-400' }, ['']);
+      const tips = el('ul', { class: 'mt-3 space-y-1 text-sm text-slate-700 dark:text-slate-300 list-disc list-inside' }, []);
+      const kcalEl = el('span', { class: 'tab-num font-semibold text-brand-700 dark:text-brand-300' }, ['0']);
+      const progressBar = el('div', { class: 'h-1.5 bg-brand-500 rounded-full transition-all', style: 'width: 0%' });
+      const progressTrack = el('div', { class: 'h-1.5 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden' }, [progressBar]);
+
+      const prevBtn = el('button', {
+        class: 'tap flex-1 rounded-xl bg-slate-200 dark:bg-slate-800 text-slate-800 dark:text-slate-100 font-medium px-3 py-3 hover:bg-slate-300 dark:hover:bg-slate-700 transition',
+        onclick: () => Engine.prev(),
+      }, ['‹ Önceki']);
+
+      const doneBtn = el('button', {
+        class: 'tap flex-1 rounded-xl bg-brand-600 hover:bg-brand-700 active:bg-brand-800 text-white font-semibold px-3 py-3 transition',
+        onclick: () => Engine.done(),
+      }, ['Bitti ✓']);
+
+      const skipBtn = el('button', {
+        class: 'tap flex-1 rounded-xl bg-slate-200 dark:bg-slate-800 text-slate-800 dark:text-slate-100 font-medium px-3 py-3 hover:bg-slate-300 dark:hover:bg-slate-700 transition',
+        onclick: () => Engine.skip(),
+      }, ['Atla ›']);
+
+      const pauseBtn = el('button', {
+        class: 'tap w-full rounded-xl bg-slate-100 dark:bg-slate-800/60 ring-1 ring-slate-200 dark:ring-slate-700 text-slate-800 dark:text-slate-100 font-medium px-3 py-3 hover:bg-slate-200 dark:hover:bg-slate-800 transition',
+        onclick: () => Engine.togglePause(),
+      }, ['Duraklat ⏸']);
+
+      const exitBtn = el('button', {
+        class: 'tap rounded-lg px-3 py-2 text-sm text-slate-500 hover:text-slate-700 dark:hover:text-slate-200',
+        onclick: () => {
+          if (confirm('Antrenmandan çıkmak istiyor musun? İlerleme kaydedilmeyecek.')) {
+            Engine.teardown();
+            location.hash = '#home';
+          }
+        },
+      }, ['✕ Çık']);
+
+      const node = el('div', { class: 'space-y-4' }, [
+        el('div', { class: 'flex items-center justify-between' }, [
+          el('div', {}, [stepCounter, blockName]),
+          exitBtn,
+        ]),
+        progressTrack,
+        gifWrap,
+        el('div', {}, [
+          title, sublabel,
+        ]),
+        el('div', {}, [counter, subRoundEl]),
+        el('div', { class: 'rounded-xl bg-white dark:bg-slate-900 ring-1 ring-slate-200 dark:ring-slate-800 px-4 py-3' }, [
+          el('div', { class: 'text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-1' }, ['Püf noktaları']),
+          tips,
+        ]),
+        el('div', { class: 'flex items-center justify-between text-sm' }, [
+          el('span', { class: 'text-slate-500 dark:text-slate-400' }, ['Yakılan kalori']),
+          el('span', {}, [kcalEl, ' kcal']),
+        ]),
+        el('div', { class: 'grid grid-cols-3 gap-2' }, [prevBtn, doneBtn, skipBtn]),
+        pauseBtn,
+      ]);
+
+      root.replaceChildren(node);
+
+      Engine.ui = { gifWrap, stepCounter, blockName, title, sublabel,
+                    counter, subRoundEl, tips, kcalEl,
+                    progressBar, prevBtn, doneBtn, skipBtn, pauseBtn };
+    },
+
+    renderActiveStep(step) {
+      const u = Engine.ui;
+      if (!u || !u.gifWrap) return;
+
+      // step counter & block name
+      const totalSteps = Engine.steps.length - 1; // exclude 'done'
+      u.stepCounter.textContent = `Adım ${Math.min(step.index + 1, totalSteps)} / ${totalSteps}`;
+      const block = BLOCK_BY_KEY[step.blockKey];
+      u.blockName.textContent = block ? block.name : '';
+
+      // progress bar based on step index
+      const ratio = step.index / totalSteps;
+      u.progressBar.style.width = `${Math.min(100, Math.max(0, ratio * 100))}%`;
+
+      u.title.textContent = step.label || '';
+      let sub = step.sublabel || '';
+      if (step.round && step.totalRounds) sub += `  ·  Tur ${step.round}/${step.totalRounds}`;
+      if (step.set && step.totalSets)     sub += `  ·  Set ${step.set}/${step.totalSets}`;
+      u.sublabel.textContent = sub;
+
+      // GIF
+      const newGif = step.exerciseId ? gifBox(step.exerciseId)
+                                     : el('div', { class: 'w-full aspect-video rounded-xl bg-brand-50 dark:bg-brand-900/30 flex items-center justify-center text-brand-700 dark:text-brand-300 text-3xl font-bold' }, ['Dinlenme']);
+      u.gifWrap.replaceChildren(newGif);
+
+      // Counter — hidden for reps (the rep target lives in sublabel); shown for timed steps
+      if (step.kind === 'reps') {
+        u.counter.classList.add('hidden');
+        u.counter.textContent = '';
+      } else {
+        u.counter.classList.remove('hidden');
+        if (step.kind === 'hold') {
+          u.counter.textContent = String(step.holdSec);
+        } else {
+          u.counter.textContent = fmtMMSS(step.duration);
+        }
+      }
+
+      // sub-round for hold
+      if (step.kind === 'hold') {
+        const phase = Engine.inHoldRest ? 'Mola' : 'Tutuş';
+        u.subRoundEl.textContent = `${phase} ${Engine.subRound}/${step.rounds}`;
+      } else if (step.kind === 'work') {
+        u.subRoundEl.textContent = 'Çalış';
+      } else if (step.kind === 'rest') {
+        u.subRoundEl.textContent = 'Dinlen';
+      } else {
+        u.subRoundEl.textContent = '';
+      }
+
+      // Tips
+      u.tips.replaceChildren();
+      const ex = step.exerciseId ? EXERCISES[step.exerciseId] : null;
+      const tipsList = ex ? ex.tips : (step.kind === 'rest' ? ['Nefes al, su iç', 'Pozisyonunu hazırla'] : []);
+      tipsList.forEach(t => u.tips.appendChild(el('li', {}, [t])));
+
+      // Buttons: show "Bitti" only on reps; otherwise show "Atla" only
+      if (step.kind === 'reps') {
+        u.doneBtn.classList.remove('hidden');
+        u.skipBtn.classList.add('hidden');
+      } else {
+        u.doneBtn.classList.add('hidden');
+        u.skipBtn.classList.remove('hidden');
+      }
+
+      // Kcal
+      u.kcalEl.textContent = String(Engine.computeLiveKcal());
+    },
+
+    updateCountdown(secs) {
+      const u = Engine.ui;
+      if (!u || !u.counter) return;
+      u.counter.textContent = fmtMMSS(secs);
+    },
+
+    updatePauseUI(paused) {
+      const u = Engine.ui;
+      if (!u || !u.pauseBtn) return;
+      u.pauseBtn.textContent = paused ? 'Devam Et ▶' : 'Duraklat ⏸';
+    },
+
+    showWorkoutSummary({ durationSec, kcal }) {
+      const stats = Store.getStats();
+      const node = el('div', { class: 'min-h-[60vh] flex flex-col items-center justify-center text-center space-y-4' }, [
+        el('div', { class: 'text-6xl' }, ['🎉']),
+        el('h1', { class: 'text-2xl font-bold' }, ['Antrenman tamam!']),
+        el('p', { class: 'text-slate-600 dark:text-slate-300' }, [
+          'Bugünkü rehabilitasyon + HIIT programını bitirdin.',
+        ]),
+        el('div', { class: 'grid grid-cols-3 gap-2 w-full max-w-md mt-2' }, [
+          statCard(fmtDuration(durationSec), 'süre'),
+          statCard(kcal, 'kcal'),
+          statCard(stats.streak, 'gün serisi'),
+        ]),
+        el('div', { class: 'flex gap-2 w-full max-w-md mt-3' }, [
+          el('a', {
+            href: '#progress',
+            class: 'tap flex-1 rounded-xl bg-brand-600 text-white text-center font-semibold px-4 py-3 hover:bg-brand-700 transition',
+          }, ['İlerlemeyi gör']),
+          el('a', {
+            href: '#home',
+            class: 'tap flex-1 rounded-xl bg-slate-200 dark:bg-slate-800 text-slate-800 dark:text-slate-100 text-center font-medium px-4 py-3 hover:bg-slate-300 dark:hover:bg-slate-700 transition',
+          }, ['Ana ekran']),
+        ]),
+      ]);
+      document.getElementById('app').replaceChildren(node);
+    },
+
+    // ---- PROGRESS ----
+    progress() {
+      const stats = Store.getStats();
+      const heatmap = Store.monthHeatmap(8);
+
+      // Group heatmap cells into weeks (columns Mon..Sun)
+      const weeks = [];
+      let cur = [];
+      heatmap.forEach((c, i) => {
+        cur.push(c);
+        if (((c.dow + 6) % 7) === 6) { weeks.push(cur); cur = []; }
+      });
+      if (cur.length) weeks.push(cur);
+
+      const root = el('div', { class: 'space-y-6' }, [
+        el('header', { class: 'flex items-center justify-between' }, [
+          el('h1', { class: 'text-xl font-bold' }, ['İlerleme']),
+          el('a', {
+            href: '#home',
+            class: 'tap px-3 py-2 rounded-lg text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800',
+          }, ['‹ Ana']),
+        ]),
+
+        el('div', { class: 'grid grid-cols-2 gap-2' }, [
+          statCard(stats.totalWorkouts, 'antrenman'),
+          statCard(stats.totalBike, 'bisiklet'),
+          statCard(stats.streak, 'gün serisi'),
+          statCard(fmtDuration(stats.totalDuration), 'toplam süre'),
+          statCard(stats.totalKcal, 'toplam kcal'),
+          statCard(stats.weekKcal, 'bu hafta kcal'),
+        ]),
+
+        el('section', {}, [
+          el('h2', { class: 'text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-2' }, ['Son 8 hafta']),
+          el('div', { class: 'flex gap-1 overflow-x-auto pb-1' }, weeks.map(week => {
+            return el('div', { class: 'flex flex-col gap-1' }, week.map(cell => {
+              const today = todayISO();
+              const isPast = cell.iso <= today;
+              let cls = 'bg-slate-200 dark:bg-slate-800';
+              if (cell.done)         cls = 'bg-brand-600 dark:bg-brand-500';
+              else if (!isPast)      cls = 'bg-slate-100 dark:bg-slate-800/40';
+              return el('div', {
+                class: `w-4 h-4 rounded-sm ${cls}`,
+                title: cell.iso + (cell.done ? ' · ✓' : ''),
+              });
+            }));
+          })),
+          el('div', { class: 'mt-2 text-xs text-slate-500 dark:text-slate-400 flex items-center gap-2' }, [
+            el('span', { class: 'inline-block w-3 h-3 rounded-sm bg-brand-600 dark:bg-brand-500' }),
+            el('span', {}, ['Tamamlanan gün']),
+          ]),
+        ]),
+
+        recentSessionsList(),
+      ]);
+      return root;
+    },
+
+    // ---- BIKE ----
+    bike() {
+      const root = el('div', { class: 'space-y-5' }, [
+        el('header', { class: 'flex items-center justify-between' }, [
+          el('div', {}, [
+            el('h1', { class: 'text-xl font-bold' }, ['Bisiklet']),
+            el('div', { class: 'text-xs text-slate-500 dark:text-slate-400' }, ['Hafif–orta tempo · ağrı yapmayan vites']),
+          ]),
+          el('a', {
+            href: '#home',
+            class: 'tap px-3 py-2 rounded-lg text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800',
+          }, ['‹ Ana']),
+        ]),
+
+        el('div', { class: 'rounded-xl bg-white dark:bg-slate-900 ring-1 ring-slate-200 dark:ring-slate-800 p-4' }, [
+          el('div', { class: 'text-sm text-slate-500 dark:text-slate-400 mb-2' }, ['Süre seç']),
+          el('div', { class: 'grid grid-cols-2 gap-2' }, [
+            bikeStartButton(30),
+            bikeStartButton(45),
+          ]),
+        ]),
+
+        el('div', { class: 'rounded-xl bg-brand-50 dark:bg-brand-900/30 p-4 text-sm text-brand-800 dark:text-brand-200' }, [
+          'Pedalı menüsküs için rahat bir vitesle çevir. Sertlik veya ağrı hissedersen vitesi azalt veya bırak.',
+        ]),
+      ]);
+      return root;
+    },
+
+    renderBikeRunning() {
+      const counter = el('div', {
+        class: 'text-7xl font-bold tab-num text-center text-slate-900 dark:text-slate-50',
+      }, [fmtMMSS(Engine.bike.minutes * 60)]);
+      const pauseBtn = el('button', {
+        class: 'tap flex-1 rounded-xl bg-slate-200 dark:bg-slate-800 text-slate-800 dark:text-slate-100 font-medium px-3 py-3 hover:bg-slate-300 dark:hover:bg-slate-700 transition',
+        onclick: () => Engine.togglePauseBike(),
+      }, ['Duraklat ⏸']);
+      const stopBtn = el('button', {
+        class: 'tap flex-1 rounded-xl bg-red-100 dark:bg-red-900/40 text-red-800 dark:text-red-200 font-medium px-3 py-3 hover:bg-red-200 dark:hover:bg-red-900/60 transition',
+        onclick: () => {
+          if (confirm('Bisikleti bitir ve mevcut süreyi kaydet?')) {
+            const r = Engine.stopBike(true);
+            Screens.showBikeSummary(r);
+          }
+        },
+      }, ['Bitir']);
+
+      const node = el('div', { class: 'space-y-5 pt-8' }, [
+        el('div', { class: 'text-center text-sm text-brand-700 dark:text-brand-300 font-medium' }, [`Bisiklet · ${Engine.bike.minutes} dk`]),
+        counter,
+        el('div', { class: 'flex items-center justify-between text-sm' }, [
+          el('span', { class: 'text-slate-500 dark:text-slate-400' }, ['Tahmini kcal']),
+          el('span', { class: 'tab-num font-semibold text-brand-700 dark:text-brand-300' }, [
+            String(Math.round(BIKE_MET * Store.getWeight() * (Engine.bike.minutes / 60))),
+            ' kcal',
+          ]),
+        ]),
+        el('div', { class: 'grid grid-cols-2 gap-2' }, [pauseBtn, stopBtn]),
+        el('p', { class: 'text-center text-xs text-slate-500 dark:text-slate-400' }, ['Sayaç bitince titreşim ve sinyal duyacaksın.']),
+      ]);
+      document.getElementById('app').replaceChildren(node);
+      Engine.bike.ui = { counter, pauseBtn };
+    },
+
+    updateBikeCountdown(secs) {
+      if (Engine.bike.ui && Engine.bike.ui.counter) {
+        Engine.bike.ui.counter.textContent = fmtMMSS(secs);
+      }
+    },
+
+    updateBikePauseUI(paused) {
+      if (Engine.bike.ui && Engine.bike.ui.pauseBtn) {
+        Engine.bike.ui.pauseBtn.textContent = paused ? 'Devam Et ▶' : 'Duraklat ⏸';
+      }
+    },
+
+    showBikeSummary({ durationSec, kcal }) {
+      const node = el('div', { class: 'min-h-[60vh] flex flex-col items-center justify-center text-center space-y-4' }, [
+        el('div', { class: 'text-6xl' }, ['🚴']),
+        el('h1', { class: 'text-2xl font-bold' }, ['Bisiklet tamam!']),
+        el('div', { class: 'grid grid-cols-2 gap-2 w-full max-w-md mt-2' }, [
+          statCard(fmtDuration(durationSec), 'süre'),
+          statCard(kcal, 'kcal'),
+        ]),
+        el('div', { class: 'flex gap-2 w-full max-w-md mt-3' }, [
+          el('a', {
+            href: '#progress',
+            class: 'tap flex-1 rounded-xl bg-brand-600 text-white text-center font-semibold px-4 py-3 hover:bg-brand-700 transition',
+          }, ['İlerlemeyi gör']),
+          el('a', {
+            href: '#home',
+            class: 'tap flex-1 rounded-xl bg-slate-200 dark:bg-slate-800 text-slate-800 dark:text-slate-100 text-center font-medium px-4 py-3 hover:bg-slate-300 dark:hover:bg-slate-700 transition',
+          }, ['Ana ekran']),
+        ]),
+      ]);
+      document.getElementById('app').replaceChildren(node);
+    },
+  };
+
+  // Small components
+  function statCard(value, label) {
+    return el('div', { class: 'rounded-xl bg-white dark:bg-slate-900 ring-1 ring-slate-200 dark:ring-slate-800 px-3 py-3' }, [
+      el('div', { class: 'text-xl font-bold tab-num' }, [String(value)]),
+      el('div', { class: 'text-[11px] uppercase tracking-wide text-slate-500 dark:text-slate-400' }, [label]),
+    ]);
+  }
+
+  function bikeStartButton(minutes) {
+    const w = Store.getWeight();
+    const kcal = Math.round(BIKE_MET * w * (minutes / 60));
+    return el('button', {
+      class: 'tap rounded-xl bg-brand-600 hover:bg-brand-700 active:bg-brand-800 text-white font-semibold px-4 py-4 transition flex flex-col items-center',
+      onclick: () => {
+        FX.ensureAudio();
+        Engine.startBike(minutes);
+      },
+    }, [
+      el('span', { class: 'text-2xl' }, [`${minutes} dk`]),
+      el('span', { class: 'text-xs opacity-90 mt-0.5' }, [`~${kcal} kcal`]),
+    ]);
+  }
+
+  function exerciseCard(id) {
+    const ex = EXERCISES[id];
+    const detail = el('div', { class: 'hidden pt-3 grid grid-cols-1 sm:grid-cols-2 gap-3' }, [
+      gifBox(id),
+      el('ul', { class: 'space-y-1.5 text-sm text-slate-700 dark:text-slate-300 list-disc list-inside' },
+        ex.tips.map(t => el('li', {}, [t])),
+      ),
+    ]);
+    const chev = el('span', { class: 'text-slate-400 transition-transform' }, ['▾']);
+    const btn = el('button', {
+      class: 'tap w-full flex items-center gap-3 text-left',
+      onclick: () => {
+        const hidden = detail.classList.toggle('hidden');
+        chev.style.transform = hidden ? '' : 'rotate(180deg)';
+      },
+    }, [
+      el('div', { class: 'flex-1' }, [
+        el('div', { class: 'font-semibold' }, [ex.name]),
+        el('div', { class: 'text-xs text-slate-500 dark:text-slate-400' }, [modeText(ex)]),
+      ]),
+      chev,
+    ]);
+    return el('div', { class: 'rounded-xl bg-white dark:bg-slate-900 ring-1 ring-slate-200 dark:ring-slate-800 p-3' }, [btn, detail]);
+  }
+
+  function modeText(ex) {
+    if (ex.mode === 'time')     return `${ex.duration} sn`;
+    if (ex.mode === 'reps')     return ex.repText;
+    if (ex.mode === 'hold')     return `${ex.holdSec} sn × ${ex.rounds}`;
+    if (ex.mode === 'interval') return `${ex.workSec} sn çalış / ${ex.restSec} sn dinlen`;
+    return '';
+  }
+
+  function recentSessionsList() {
+    const data = Store.load();
+    const recent = [...data.completions].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 7);
+    if (recent.length === 0) {
+      return el('section', {}, [
+        el('h2', { class: 'text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-2' }, ['Son oturumlar']),
+        el('div', { class: 'rounded-xl bg-white dark:bg-slate-900 ring-1 ring-slate-200 dark:ring-slate-800 p-4 text-sm text-slate-500 dark:text-slate-400 text-center' },
+          ['Henüz kayıt yok. İlk antrenmanını yap!']),
+      ]);
+    }
+    return el('section', {}, [
+      el('h2', { class: 'text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-2' }, ['Son oturumlar']),
+      el('ul', { class: 'rounded-xl bg-white dark:bg-slate-900 ring-1 ring-slate-200 dark:ring-slate-800 divide-y divide-slate-100 dark:divide-slate-800' },
+        recent.map(s => el('li', { class: 'flex items-center justify-between px-4 py-3 text-sm' }, [
+          el('div', {}, [
+            el('div', { class: 'font-medium' }, [s.type === 'workout' ? 'Antrenman' : 'Bisiklet']),
+            el('div', { class: 'text-xs text-slate-500 dark:text-slate-400' }, [s.date]),
+          ]),
+          el('div', { class: 'text-right' }, [
+            el('div', { class: 'tab-num' }, [fmtDuration(s.durationSec)]),
+            el('div', { class: 'text-xs text-slate-500 dark:text-slate-400 tab-num' }, [`${s.kcal || 0} kcal`]),
+          ]),
+        ])),
+      ),
+    ]);
+  }
+
+  // -----------------------------------------------------------------------------
+  // ROUTER
+  // -----------------------------------------------------------------------------
+  const Router = {
+    routes: {
+      '':           () => Screens.home(),
+      '#home':      () => Screens.home(),
+      '#exercises': () => Screens.exerciseList(),
+      '#workout':   () => null, // Engine.startWorkout mounts itself
+      '#progress':  () => Screens.progress(),
+      '#bike':      () => Screens.bike(),
+    },
+    current: null,
+
+    handle() {
+      let hash = location.hash || '';
+      // Leaving workout/bike screens — cleanup if engine running
+      if (Router.current === '#workout' && hash !== '#workout' && Engine.running) {
+        if (!confirm('Antrenmandan çıkmak istiyor musun? İlerleme kaydedilmeyecek.')) {
+          history.replaceState(null, '', '#workout');
+          return;
+        }
+        Engine.teardown();
+      }
+      if (Router.current === '#bike' && hash !== '#bike' && Engine.bike.running) {
+        Engine.stopBike(false);
+      }
+
+      // Safety: arriving at #workout without an active engine — redirect home
+      if (hash === '#workout' && !Engine.running) {
+        history.replaceState(null, '', '#home');
+        hash = '#home';
+      }
+
+      Router.current = hash;
+      const fn = Router.routes[hash] || Router.routes[''];
+      const node = fn();
+      if (node) document.getElementById('app').replaceChildren(node);
+
+      // Update nav state
+      document.querySelectorAll('[data-nav]').forEach(a => {
+        const active = ('#' + a.dataset.nav === hash) ||
+                       (hash === '' && a.dataset.nav === 'home');
+        a.classList.toggle('text-brand-600', active);
+        a.classList.toggle('dark:text-brand-300', active);
+        a.classList.toggle('text-slate-500', !active);
+        a.classList.toggle('dark:text-slate-400', !active);
+      });
+
+      window.scrollTo({ top: 0, behavior: 'instant' });
+    },
+  };
+
+  // -----------------------------------------------------------------------------
+  // INLINE PWA MANIFEST + ICON
+  // -----------------------------------------------------------------------------
+  function setupManifest() {
+    const iconSvg =
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192">' +
+      '<rect width="192" height="192" rx="40" fill="#0d9488"/>' +
+      '<path d="M96 152s-44-28-44-64a24 24 0 0 1 44-16 24 24 0 0 1 44 16c0 36-44 64-44 64z" fill="#fff"/>' +
+      '</svg>';
+    const manifest = {
+      name: 'Menüsküs Rehab',
+      short_name: 'Rehab',
+      description: 'Menüsküs tamiri sonrası rehabilitasyon + HIIT programı',
+      start_url: '.',
+      display: 'standalone',
+      orientation: 'portrait',
+      background_color: '#0f172a',
+      theme_color: '#0d9488',
+      lang: 'tr',
+      icons: [{
+        src: 'data:image/svg+xml;utf8,' + encodeURIComponent(iconSvg),
+        sizes: '192x192 512x512 any',
+        type: 'image/svg+xml',
+        purpose: 'any maskable',
+      }],
+    };
+    const link = document.createElement('link');
+    link.rel = 'manifest';
+    link.href = 'data:application/manifest+json;charset=utf-8,' +
+                encodeURIComponent(JSON.stringify(manifest));
+    document.head.appendChild(link);
+
+    // Favicon (also helps PWA)
+    const fav = document.createElement('link');
+    fav.rel = 'icon';
+    fav.type = 'image/svg+xml';
+    fav.href = 'data:image/svg+xml;utf8,' + encodeURIComponent(iconSvg);
+    document.head.appendChild(fav);
+  }
+
+  // -----------------------------------------------------------------------------
+  // VISIBILITY: re-acquire wake lock when returning to foreground
+  // -----------------------------------------------------------------------------
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+      if ((Engine.running && !Engine.paused) ||
+          (Engine.bike.running && !Engine.bike.paused)) {
+        FX.requestWakeLock();
+      }
+    }
+  });
+
+  // -----------------------------------------------------------------------------
+  // APP INIT
+  // -----------------------------------------------------------------------------
+  const App = {
+    init() {
+      setupManifest();
+      window.addEventListener('hashchange', Router.handle);
+      Router.handle();
+    },
+  };
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', App.init);
+  } else {
+    App.init();
+  }
+})();
+</script>
+</body>
+</html>
