@@ -314,7 +314,108 @@
       tips: ['Tam hareket aralığı', 'Gerekirse denge için duvara dokun'],
       svgKey: 'calf',
     },
+
+    // --- Alternatif (eklem dostu) egzersizler ---
+    'wall-squat': {
+      id: 'wall-squat', name: 'Duvar squatı',
+      mode: 'reps', repText: '12 tekrar',
+      tips: ['Sırtı duvara daya, topuklar önde', 'Diz açısı ağrısız seviyede tut', 'Diz parmak yönünde, içe kaçmasın'],
+      svgKey: 'squat',
+    },
+    'standing-hip-abduction': {
+      id: 'standing-hip-abduction', name: 'Ayakta kalça açma (bantla)',
+      mode: 'reps', repText: '15 tekrar / bacak',
+      tips: ['Duvara hafifçe tutun', 'Bacağı yavaşça yana aç', 'Dizi bükmeden, kalça düşmesin'],
+      svgKey: 'lunge',
+    },
+    'two-leg-glute-bridge': {
+      id: 'two-leg-glute-bridge', name: 'İki bacak glute bridge',
+      mode: 'reps', repText: '15 tekrar',
+      tips: ['Her iki ayak yerde, omuz genişliğinde', 'Gluteyi sıkarak kalk', 'Alt sırt aşırı kavislenmesin'],
+      svgKey: 'bridge',
+    },
+    'bodyweight-hip-hinge': {
+      id: 'bodyweight-hip-hinge', name: 'Vücut ağırlığı ile hip hinge',
+      mode: 'interval', workSec: 40, restSec: 20,
+      tips: ['Eller kalçada veya omuzlarda', 'Kalçadan kır, sırt nötr', 'Diz hafif bükük, yavaş ve kontrollü'],
+      svgKey: 'bridge',
+    },
+    'seated-arm-rotation': {
+      id: 'seated-arm-rotation', name: 'Oturarak kol rotasyonu',
+      mode: 'interval', workSec: 40, restSec: 20,
+      tips: ['Sandalyede otur, sırt dik', 'Hafif yumruk vuruşları, omuzdan gönder', 'Bel ve dizler sabit'],
+      svgKey: 'boxing',
+    },
+    'supine-knee-hug': {
+      id: 'supine-knee-hug', name: 'Sırt üstü diz kavrama',
+      mode: 'interval', workSec: 40, restSec: 20,
+      tips: ['Sırt üstü yat, bel yerde', 'Bir dizi göğse çek, diğer bacak düz', 'Çapraz hareket, yavaş'],
+      svgKey: 'core',
+    },
+    'seated-pallof-press': {
+      id: 'seated-pallof-press', name: 'Oturarak pallof press',
+      mode: 'interval', workSec: 40, restSec: 20,
+      tips: ['Bantı yan taraftan sabitle', 'Oturarak göğüsten öne it', 'Gövde dönmesin, nefes ver'],
+      svgKey: 'band',
+    },
+    'quad-set': {
+      id: 'quad-set', name: 'Quad set (oturarak izometrik)',
+      mode: 'reps', repText: '15 tekrar',
+      tips: ['Otur veya yat, bacak düz', 'Uyluk kasını 5 sn sık', 'Diz arkasını yüzeye bastır'],
+      svgKey: 'quadiso',
+    },
+    'heel-slide': {
+      id: 'heel-slide', name: 'Topuk kaydırma',
+      mode: 'reps', repText: '15 tekrar × 2 set',
+      tips: ['Sırt üstü yat', 'Topuğu yavaşça kalçaya doğru çek', 'Ağrı yoksa tam açmaya çalış'],
+      svgKey: 'core',
+    },
+    'supine-heel-drag': {
+      id: 'supine-heel-drag', name: 'Sırt üstü topuk sürükleme',
+      mode: 'reps', repText: '15 tekrar × 2 set',
+      tips: ['Sırt üstü yat', 'Topukla zemine hafif basarak çek', 'Ağrısız aralıkta kal'],
+      svgKey: 'core',
+    },
+    'seated-hip-abduction': {
+      id: 'seated-hip-abduction', name: 'Oturarak kalça açma',
+      mode: 'reps', repText: '10 tekrar × 2 yön',
+      tips: ['Bantı dizlerin üstüne al', 'Sandalyede otururken bacakları aç', 'Yavaş ve kontrollü'],
+      svgKey: 'monster',
+    },
+    'seated-march': {
+      id: 'seated-march', name: 'Oturarak yerinde yürüyüş',
+      mode: 'time', duration: 60,
+      tips: ['Sandalyede otur, sırt dik', 'Dizleri sırayla kaldır', 'Omuzları gevşet'],
+      svgKey: 'walk',
+    },
+    'seated-calf-raises': {
+      id: 'seated-calf-raises', name: 'Oturarak calf raises',
+      mode: 'reps', repText: '15 tekrar',
+      tips: ['Sandalyede otur', 'Parmak uçlarına çık, kontrollü in', 'Tam hareket aralığı'],
+      svgKey: 'calf',
+    },
   };
+
+  // Maps each exercise to a lower-impact, joint-friendlier alternative
+  const ALTERNATIVES = {
+    'walk-in-place':           'seated-march',
+    'monster-walk':            'seated-hip-abduction',
+    'calf-raises':             'seated-calf-raises',
+    'goblet-squat':            'wall-squat',
+    'reverse-lunge':           'standing-hip-abduction',
+    'single-leg-glute-bridge': 'two-leg-glute-bridge',
+    'kb-rdl':                  'bodyweight-hip-hinge',
+    'db-shadow-boxing':        'seated-arm-rotation',
+    'dead-bug':                'supine-knee-hug',
+    'pallof-press':            'seated-pallof-press',
+    'band-leg-extension':      'quad-set',
+    'prone-hamstring-curl':    'heel-slide',
+    'seated-leg-curl':         'supine-heel-drag',
+    'single-leg-calf-raises':  'calf-raises',
+  };
+
+  // Session-level set of exercises marked done in the exercise list view
+  const checkedExercises = new Set();
 
   // Real exercise photos (free-exercise-db, Unlicense) bundled locally as two
   // frames (start/end) — animated client-side by alternating them.
@@ -439,7 +540,7 @@
       const ex = EXERCISES[id];
       for (let s = 1; s <= fb.sets; s++) {
         steps.push({ kind: 'reps', exerciseId: id, blockKey: 'finisher',
-                     label: ex.name, sublabel: `Set ${s}/${fb.sets} · 15 tekrar`,
+                     label: ex.name, sublabel: ex.repText || '15 tekrar',
                      set: s, totalSets: fb.sets, autoAdvance: false });
       }
     });
@@ -925,6 +1026,25 @@
       Engine.enterStep(Engine.stepIndex - 1);
     },
     skip() { Engine.next(); },
+
+    swapCurrentExercise() {
+      const step = Engine.steps[Engine.stepIndex];
+      if (!step || !step.exerciseId) return;
+      const altId = ALTERNATIVES[step.exerciseId];
+      if (!altId || !EXERCISES[altId]) return;
+      const origId = step.exerciseId;
+      const altEx = EXERCISES[altId];
+      // Replace all remaining steps (from current forward) that use the same exercise
+      for (let i = Engine.stepIndex; i < Engine.steps.length; i++) {
+        const s = Engine.steps[i];
+        if (s.exerciseId !== origId) continue;
+        s.exerciseId = altId;
+        s.label = altEx.name;
+        if (s.kind === 'reps') s.sublabel = altEx.repText || '';
+      }
+      Screens.renderActiveStep(Engine.steps[Engine.stepIndex]);
+    },
+
     done() {
       const step = Engine.steps[Engine.stepIndex];
       if (step && step.kind === 'reps') Engine.next();
@@ -1204,6 +1324,18 @@
           }),
         ]),
         todayCard,
+        el('button', {
+          class: 'tap w-full rounded-xl bg-white dark:bg-slate-900 ring-1 ring-slate-200 dark:ring-slate-800 px-4 py-3 flex items-center justify-between text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition',
+          onclick: () => location.hash = '#exercises',
+        }, [
+          el('span', { class: 'flex items-center gap-2 font-medium text-sm' }, [
+            el('span', {
+              html: '<svg viewBox="0 0 24 24" class="w-4 h-4 text-brand-600 dark:text-brand-400 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><path d="M9 5a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2"/><path d="M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/></svg>',
+            }),
+            'Tüm Egzersizler',
+          ]),
+          el('span', { class: 'text-slate-400 text-lg' }, ['›']),
+        ]),
         calendar,
         statsRow,
         weightRow,
@@ -1289,6 +1421,11 @@
         onclick: () => Engine.skip(),
       }, ['Atla ›']);
 
+      const altBtn = el('button', {
+        class: 'tap hidden w-full rounded-xl bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-200 font-medium px-3 py-2.5 hover:bg-amber-200 dark:hover:bg-amber-900/60 transition text-sm',
+        onclick: () => Engine.swapCurrentExercise(),
+      }, ['↔ Alternatif egzersiz']);
+
       const pauseBtn = el('button', {
         class: 'tap w-full rounded-xl bg-slate-100 dark:bg-slate-800/60 ring-1 ring-slate-200 dark:ring-slate-700 text-slate-800 dark:text-slate-100 font-medium px-3 py-3 hover:bg-slate-200 dark:hover:bg-slate-800 transition',
         onclick: () => Engine.togglePause(),
@@ -1324,6 +1461,7 @@
           el('span', {}, [kcalEl, ' kcal']),
         ]),
         el('div', { class: 'grid grid-cols-3 gap-2' }, [prevBtn, doneBtn, skipBtn]),
+        altBtn,
         pauseBtn,
       ]);
 
@@ -1331,7 +1469,7 @@
 
       Engine.ui = { gifWrap, stepCounter, blockName, title, sublabel,
                     counter, subRoundEl, tips, kcalEl,
-                    progressBar, prevBtn, doneBtn, skipBtn, pauseBtn };
+                    progressBar, prevBtn, doneBtn, skipBtn, altBtn, pauseBtn };
     },
 
     renderActiveStep(step) {
@@ -1398,6 +1536,16 @@
       } else {
         u.doneBtn.classList.add('hidden');
         u.skipBtn.classList.remove('hidden');
+      }
+
+      // Alternatif button: shown when the current exercise has a defined alternative
+      const altId = step.exerciseId && ALTERNATIVES[step.exerciseId];
+      const altEx = altId && EXERCISES[altId];
+      if (altEx) {
+        u.altBtn.classList.remove('hidden');
+        u.altBtn.textContent = `↔ Alternatif: ${altEx.name}`;
+      } else {
+        u.altBtn.classList.add('hidden');
       }
 
       // Kcal
@@ -1625,12 +1773,42 @@
 
   function exerciseCard(id) {
     const ex = EXERCISES[id];
-    const detail = el('div', { class: 'hidden pt-3 grid grid-cols-1 sm:grid-cols-2 gap-3' }, [
-      gifBox(id),
-      el('ul', { class: 'space-y-1.5 text-sm text-slate-700 dark:text-slate-300 list-disc list-inside' },
-        ex.tips.map(t => el('li', {}, [t])),
-      ),
+    let doneTag, card;
+
+    const checkBtn = el('button', {
+      class: 'tap w-full rounded-lg px-3 py-2 text-sm font-medium transition ' +
+             (checkedExercises.has(id)
+               ? 'bg-brand-600 text-white'
+               : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-brand-100 dark:hover:bg-brand-900/40 hover:text-brand-700 dark:hover:text-brand-300'),
+      onclick: (e) => {
+        e.stopPropagation();
+        if (checkedExercises.has(id)) checkedExercises.delete(id);
+        else checkedExercises.add(id);
+        const done = checkedExercises.has(id);
+        checkBtn.textContent = done ? '✓ Tamamlandı' : 'Tamamlandı işaretle';
+        checkBtn.className = 'tap w-full rounded-lg px-3 py-2 text-sm font-medium transition ' +
+          (done ? 'bg-brand-600 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-brand-100 dark:hover:bg-brand-900/40 hover:text-brand-700 dark:hover:text-brand-300');
+        doneTag.classList.toggle('hidden', !done);
+        card.className = 'rounded-xl bg-white dark:bg-slate-900 p-3 ' +
+          (done ? 'ring-2 ring-brand-500' : 'ring-1 ring-slate-200 dark:ring-slate-800');
+      },
+    }, [checkedExercises.has(id) ? '✓ Tamamlandı' : 'Tamamlandı işaretle']);
+
+    const detail = el('div', { class: 'hidden pt-3 space-y-3' }, [
+      el('div', { class: 'grid grid-cols-1 sm:grid-cols-2 gap-3' }, [
+        gifBox(id),
+        el('ul', { class: 'space-y-1.5 text-sm text-slate-700 dark:text-slate-300 list-disc list-inside' },
+          ex.tips.map(t => el('li', {}, [t])),
+        ),
+      ]),
+      checkBtn,
     ]);
+
+    doneTag = el('span', {
+      class: (checkedExercises.has(id) ? '' : 'hidden ') +
+             'ml-1.5 text-sm font-semibold text-brand-600 dark:text-brand-400',
+    }, ['✓']);
+
     const chev = el('span', { class: 'text-slate-400 transition-transform' }, ['▾']);
     const btn = el('button', {
       class: 'tap w-full flex items-center gap-3 text-left',
@@ -1640,12 +1818,17 @@
       },
     }, [
       el('div', { class: 'flex-1' }, [
-        el('div', { class: 'font-semibold' }, [ex.name]),
+        el('div', { class: 'font-semibold flex items-center flex-wrap gap-x-0.5' }, [ex.name, doneTag]),
         el('div', { class: 'text-xs text-slate-500 dark:text-slate-400' }, [modeText(ex)]),
       ]),
       chev,
     ]);
-    return el('div', { class: 'rounded-xl bg-white dark:bg-slate-900 ring-1 ring-slate-200 dark:ring-slate-800 p-3' }, [btn, detail]);
+
+    card = el('div', {
+      class: 'rounded-xl bg-white dark:bg-slate-900 p-3 ' +
+             (checkedExercises.has(id) ? 'ring-2 ring-brand-500' : 'ring-1 ring-slate-200 dark:ring-slate-800'),
+    }, [btn, detail]);
+    return card;
   }
 
   function modeText(ex) {
