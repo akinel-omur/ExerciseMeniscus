@@ -43,48 +43,49 @@ manifest gömülüdür, ikonla birlikte standalone uygulama gibi açılır.
 - Bisiklet günü için 30/45 dk geri sayım modu
 - PWA manifest gömülü, ana ekrana eklenebilir
 
-## Egzersiz görselleri
+## Egzersiz videoları ve görselleri
 
-Her egzersiz kartı görseli şu öncelik sırasıyla yükler:
+Her egzersiz kartında bir **poster** (gerçek fotoğraf, yoksa animasyonlu SVG) ve
+üstünde bir **▶ oynat** butonu vardır. Butona basınca o egzersizin **YouTube
+videosu kart içinde (inline) oynatılır**. Video kullanıcı dokunuşuyla yüklenir
+(lazy) — sayfa hızlı açılır, 15 video aynı anda yüklenmez.
 
-1. `assets/gifs/{exercise-id}.gif` — **kendi GIF'ini koyarsan öncelikli** kullanılır
-2. `assets/photos/{id}-0.jpg` + `{id}-1.jpg` — **gerçek fotoğraf** (başlangıç + bitiş
-   karesi); uygulama bu iki kareyi sırayla göstererek hareketi animasyonlu canlandırır
-3. Gömülü **animasyonlu SVG** çizim — ne GIF ne foto varsa
+### Video listesini düzenleme
 
-### Hazır gelen gerçek fotoğraflar (12 hareket)
+Video ID'leri `index.html` içindeki **`VIDEOS`** tablosundadır:
 
-Aşağıdaki 12 hareket, repoda `assets/photos/` içinde gerçek fotoğraflarla gelir —
-kaynak: [free-exercise-db](https://github.com/yuhonas/free-exercise-db),
-lisans **The Unlicense** (kamu malı, atıf zorunlu değil):
+```js
+const VIDEOS = {
+  'goblet-squat': { id: 'gCESNsDsbqk' },
+  // kısa bir bölüme kırpmak için (saniye):
+  // 'goblet-squat': { id: 'gCESNsDsbqk', start: 12, end: 30 },
+  ...
+};
+```
 
-Yerinde yürüyüş · Calf raises · Goblet squat · Reverse lunge · Single-leg glute
-bridge · Kettlebell RDL · Dead bug · Pallof press · Leg extension · Prone
-hamstring curl · Oturarak leg curl · Tek bacak calf raises.
+- Bir videoyu beğenmezsen `id`'yi değiştir (YouTube linkindeki `watch?v=` sonrası kısım).
+- Sadece kısa bir bölümün oynaması için `start` / `end` (saniye) ekle.
+- Bir video **gömülemez** (kanal embed'i kapatmış) veya silinmişse, poster yerinde
+  kalır ve oynatma çalışmaz — o satırdaki `id`'yi çalışan bir videoyla değiştir.
 
-### Animasyonlu SVG ile gösterilen 3 hareket
+> Not: Video ID'leri YouTube aramasından seçildi; çoğu sorunsuz gömülür ama
+> YouTube tarafında değişiklik olabileceğinden zamanla biri çalışmazsa yukarıdaki
+> gibi değiştirmen yeterli.
 
-Bu hareketler veritabanında bulunmadığı için gömülü animasyonlu SVG çizimle
-gösterilir (hareketi canlandırır ama foto değildir):
+### Posterler
 
-- **Monster walk** (bantla yan adım)
-- **Dambıl shadow boxing**
-- **Kuadriseps izometrik sıkma**
+12 hareketin posteri **gerçek fotoğraf** ([free-exercise-db](https://github.com/yuhonas/free-exercise-db),
+lisans **The Unlicense** / kamu malı): yerinde yürüyüş, calf raises, goblet squat,
+reverse lunge, single-leg glute bridge, kettlebell RDL, dead bug, pallof press,
+leg extension, prone hamstring curl, oturarak leg curl, tek bacak calf raises.
 
-İstersen bunlara da kendi GIF'ini ekleyerek SVG'nin yerini alabilirsin:
-`assets/gifs/monster-walk.gif`, `assets/gifs/db-shadow-boxing.gif`,
-`assets/gifs/quad-isometric.gif`.
+Kalan 3 hareket (monster walk, dambıl shadow boxing, kuadriseps izometrik)
+veritabanında olmadığından **animasyonlu SVG** posterle gösterilir.
 
-### Görselleri değiştirmek / iyileştirmek
+### Kendi görselini kullanmak (opsiyonel)
 
-- **Kendi GIF'in** (en gerçekçi): telefonla 3–5 sn döngü çek, `ffmpeg` ile çevir
-  ve `assets/gifs/{id}.gif` olarak koy:
-  ```
-  ffmpeg -i input.mp4 -vf "fps=12,scale=480:-1:flags=lanczos" -loop 0 goblet-squat.gif
-  ```
-- **wger.de** açık egzersiz veritabanı (CC-BY-SA 3.0): `https://wger.de/api/v2/`
-
-Görseli ekledikten sonra sayfayı yenile; uygulama otomatik gösterir.
+İstersen `assets/gifs/{id}.gif` ekleyebilirsin; ilgili egzersizin görsel/poster
+mantığını kendine göre uyarlamak için `gifBox` fonksiyonuna bakabilirsin.
 
 ## Teknik notlar
 

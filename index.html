@@ -7,23 +7,21 @@
 <meta name="theme-color" content="#0f172a" media="(prefers-color-scheme: dark)" />
 <title>Menüsküs Rehab</title>
 <!--
-  EGZERSİZ GÖRSEL KAYNAKLARI
-  --------------------------
-  Görsel yükleme sırası (her egzersiz kartında):
-    1) assets/gifs/{exercise-id}.gif      -> kendi GIF'ini koyarsan öncelikli kullanılır
-    2) assets/photos/{id}-0.jpg + {id}-1.jpg -> gerçek fotoğraf (başlangıç + bitiş karesi);
-       uygulama bu iki kareyi sırayla göstererek hareketi animasyonlu canlandırır
-    3) inline animasyonlu SVG çizim       -> ne GIF ne foto varsa
+  EGZERSİZ GÖRSELLERİ / VİDEOLARI
+  -------------------------------
+  Her egzersiz kartında bir POSTER (gerçek fotoğraf, yoksa animasyonlu SVG) ve
+  üstünde bir ▶ oynat butonu gösterilir. Butona basınca o egzersizin YouTube
+  videosu kart içinde (inline iframe) oynatılır.
 
-  Yerel fotoğraflar: free-exercise-db (https://github.com/yuhonas/free-exercise-db)
-    Lisans: The Unlicense (kamu malı / public domain) — atıf zorunlu değil.
-    12 hareket gerçek fotoğrafla gelir; veritabanında olmayan 3 hareket
-    (monster walk, shadow boxing, kuadriseps izometrik) animasyonlu SVG ile gösterilir.
+  - Video ID'leri aşağıdaki JS içindeki VIDEOS tablosundadır. Bir videoyu
+    değiştirmek için id'yi düzenle; kısa bir bölüme kırpmak için { start, end }
+    (saniye) ekle. Örn: 'goblet-squat': { id: 'xxxx', start: 12, end: 30 }
+  - Bir video gömülemez/silinmişse poster yerinde kalır; sadece o id'yi değiştir.
 
-  Daha fazla / farklı görsel için:
-    - wger.de açık egzersiz veritabanı (CC-BY-SA 3.0): https://wger.de/api/v2/
-    - Kendi çekimini GIF'e çevirip assets/gifs/{id}.gif olarak koyabilirsin.
-  Ayrıntı README.md içindedir.
+  Poster fotoğrafları: free-exercise-db (https://github.com/yuhonas/free-exercise-db)
+    Lisans: The Unlicense (kamu malı). 12 hareket gerçek fotoğrafla gelir; 3 hareket
+    (monster walk, shadow boxing, kuadriseps izometrik) animasyonlu SVG posterli.
+  İstersen assets/gifs/{id}.gif ile kendi görselini de ekleyebilirsin (README'ye bak).
 -->
 <script src="https://cdn.tailwindcss.com"></script>
 <script>
@@ -329,6 +327,35 @@
   PHOTO_IDS.forEach(id => {
     EXERCISES[id].frames = [`assets/photos/${id}-0.jpg`, `assets/photos/${id}-1.jpg`];
   });
+
+  // YouTube demo videos per exercise. Edit an id here to swap the clip; add
+  // optional { start, end } (seconds) to trim to a short segment, e.g.
+  //   'goblet-squat': { id: 'gCESNsDsbqk', start: 12, end: 30 }
+  const VIDEOS = {
+    'walk-in-place':           { id: 'u1gmWFvEluM' },
+    'monster-walk':            { id: 'snbNxUIUQPc' },
+    'calf-raises':             { id: '97NbelB5yvQ' },
+    'quad-isometric':          { id: '5TUK4uT2nnw' },
+    'goblet-squat':            { id: 'gCESNsDsbqk' },
+    'reverse-lunge':           { id: 'Q2k3kYbtOcI' },
+    'single-leg-glute-bridge': { id: 'kZwLhgwfkwc' },
+    'kb-rdl':                  { id: 'Uc5rP5xs7qQ' },
+    'db-shadow-boxing':        { id: '2gnCz755Z2I' },
+    'dead-bug':                { id: 'bxn9FBrt4-A' },
+    'pallof-press':            { id: 'lqPrSGXfL1Q' },
+    'band-leg-extension':      { id: 'aFHYb_lzrCY' },
+    'prone-hamstring-curl':    { id: '8Wagn999nhA' },
+    'seated-leg-curl':         { id: 'OoHdn2ZptTk' },
+    'single-leg-calf-raises':  { id: 'ORT4oJ_R8Qs' },
+  };
+
+  const YT_PARAMS = 'autoplay=1&rel=0&modestbranding=1&playsinline=1&iv_load_policy=3';
+  function ytEmbedUrl(v) {
+    let u = `https://www.youtube.com/embed/${v.id}?${YT_PARAMS}`;
+    if (v.start != null) u += `&start=${v.start}`;
+    if (v.end != null) u += `&end=${v.end}`;
+    return u;
+  }
 
   const PROGRAM = [
     { key: 'warmup',   name: 'Isınma',                 minutes: 4,  met: 3.0,
@@ -685,71 +712,75 @@
     return e;
   }
 
-  // Track running 2-frame animation intervals so we can stop them on navigation
-  const GIF_TIMERS = new Set();
-  function clearGifTimerOn(node) {
-    if (node && node._gifTimer) { clearInterval(node._gifTimer); GIF_TIMERS.delete(node._gifTimer); node._gifTimer = null; }
+  // Poster: real photo (start frame) with animated-SVG fallback
+  function posterNode(ex) {
+    const wrap = el('div', { class: 'absolute inset-0' });
+    const svg = () => wrap.replaceChildren(el('div', {
+      class: 'absolute inset-0 flex items-center justify-center p-4',
+      html: SVG_FALLBACKS[ex.svgKey] || SVG_FALLBACKS.core,
+    }));
+    if (ex.frames && ex.frames.length) {
+      const img = el('img', { class: 'absolute inset-0 w-full h-full object-cover bg-white dark:bg-slate-900', alt: ex.name });
+      img.onerror = svg;
+      img.src = ex.frames[0];
+      wrap.appendChild(img);
+    } else {
+      svg();
+    }
+    return wrap;
   }
-  function clearAllGifTimers() { GIF_TIMERS.forEach(t => clearInterval(t)); GIF_TIMERS.clear(); }
 
-  // Layered media loader: user GIF override -> real-photo 2-frame animation -> animated SVG
+  // Media box: poster + tap-to-play inline YouTube video
   function gifBox(exerciseId) {
     const ex = EXERCISES[exerciseId];
     const box = el('div', {
       class: 'relative w-full aspect-video rounded-xl overflow-hidden bg-slate-200 dark:bg-slate-800 ring-1 ring-slate-200 dark:ring-slate-700',
     });
     if (!ex) return box;
-    const skel = el('div', { class: 'absolute inset-0 skeleton' });
-    box.appendChild(skel);
 
-    const showImg = (src) => {
-      const img = el('img', { class: 'absolute inset-0 w-full h-full object-cover bg-white dark:bg-slate-900', alt: ex.name });
-      img.src = src;
-      box.replaceChildren(img);
-      return img;
-    };
+    box.appendChild(posterNode(ex));
 
-    const showFrames = (frames) => {
-      const img = showImg(frames[0]);
-      // preload second frame, then alternate
-      const pre = new Image(); pre.src = frames[1];
-      let i = 0;
-      const t = setInterval(() => { i = (i + 1) % frames.length; img.src = frames[i]; }, 800);
-      GIF_TIMERS.add(t);
-      box._gifTimer = t;
-    };
-
-    const showSvg = () => {
-      box.replaceChildren(el('div', {
-        class: 'absolute inset-0 flex items-center justify-center p-4',
-        html: SVG_FALLBACKS[ex.svgKey] || SVG_FALLBACKS.core,
-      }));
-    };
-
-    const tryFrames = () => {
-      if (ex.frames && ex.frames.length) {
-        const test = new Image();
-        test.onload = () => showFrames(ex.frames);
-        test.onerror = showSvg;
-        test.src = ex.frames[0];
-      } else {
-        showSvg();
-      }
-    };
-
-    // 1) user-supplied GIF override (assets/gifs/{id}.gif)
-    const userGif = new Image();
-    userGif.onload = () => showImg(userGif.src);
-    userGif.onerror = tryFrames;
-    userGif.src = `assets/gifs/${ex.id}.gif?v=1`;
+    const vid = VIDEOS[exerciseId];
+    if (vid && vid.id) {
+      const playBtn = el('button', {
+        class: 'absolute inset-0 flex items-center justify-center bg-black/25 hover:bg-black/40 active:bg-black/50 transition',
+        type: 'button',
+        'aria-label': ex.name + ' videosunu oynat',
+        onclick: (e) => {
+          e.stopPropagation();
+          const iframe = el('iframe', {
+            class: 'absolute inset-0 w-full h-full',
+            src: ytEmbedUrl(vid),
+            title: ex.name,
+            frameborder: '0',
+            allow: 'autoplay; encrypted-media; picture-in-picture; fullscreen',
+            allowfullscreen: 'true',
+            referrerpolicy: 'strict-origin-when-cross-origin',
+          });
+          box.replaceChildren(iframe);
+        },
+      }, [
+        el('span', {
+          class: 'flex items-center justify-center w-16 h-16 rounded-full bg-white/90 dark:bg-white/95 text-brand-700 shadow-lg',
+          html: '<svg viewBox="0 0 24 24" class="w-9 h-9 ml-1" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>',
+        }),
+      ]);
+      box.appendChild(playBtn);
+      box.appendChild(el('span', {
+        class: 'absolute bottom-1.5 right-2 text-[10px] font-semibold text-white bg-red-600/90 rounded px-1.5 py-0.5 pointer-events-none',
+      }, ['▶ YouTube']));
+    }
 
     return box;
   }
 
+  // No-ops kept so existing call sites stay valid (videos load lazily on tap)
+  function clearGifTimerOn() {}
+  function clearAllGifTimers() {}
+
   function preloadGif(exerciseId) {
     const ex = EXERCISES[exerciseId];
-    if (!ex || !ex.frames) return;
-    ex.frames.forEach(src => { const i = new Image(); i.src = src; });
+    if (ex && ex.frames) { const i = new Image(); i.src = ex.frames[0]; }
   }
 
   // -----------------------------------------------------------------------------
