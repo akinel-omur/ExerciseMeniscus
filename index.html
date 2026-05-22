@@ -1448,6 +1448,7 @@
         ]),
         progressTrack,
         gifWrap,
+        altBtn,
         el('div', {}, [
           title, sublabel,
         ]),
@@ -1461,7 +1462,6 @@
           el('span', {}, [kcalEl, ' kcal']),
         ]),
         el('div', { class: 'grid grid-cols-3 gap-2' }, [prevBtn, doneBtn, skipBtn]),
-        altBtn,
         pauseBtn,
       ]);
 
@@ -1819,7 +1819,12 @@
     }, [
       el('div', { class: 'flex-1' }, [
         el('div', { class: 'font-semibold flex items-center flex-wrap gap-x-0.5' }, [ex.name, doneTag]),
-        el('div', { class: 'text-xs text-slate-500 dark:text-slate-400' }, [modeText(ex)]),
+        el('div', { class: 'text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1.5 flex-wrap' }, [
+          modeText(ex),
+          ...(ALTERNATIVES[id] && EXERCISES[ALTERNATIVES[id]]
+            ? [el('span', { class: 'text-amber-600 dark:text-amber-400' }, ['· alternatif var'])]
+            : []),
+        ]),
       ]),
       chev,
     ]);
