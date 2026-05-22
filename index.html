@@ -7,23 +7,23 @@
 <meta name="theme-color" content="#0f172a" media="(prefers-color-scheme: dark)" />
 <title>Menüsküs Rehab</title>
 <!--
-  EGZERSİZ GİF KAYNAKLARI
-  -----------------------
-  Bu uygulama tüm egzersiz GIF'lerini "assets/gifs/{exercise-id}.gif" yerel
-  yolundan yükler. Dosya yoksa, egzersize uygun bir inline SVG çizim fallback
-  olarak gösterilir.
+  EGZERSİZ GÖRSEL KAYNAKLARI
+  --------------------------
+  Görsel yükleme sırası (her egzersiz kartında):
+    1) assets/gifs/{exercise-id}.gif      -> kendi GIF'ini koyarsan öncelikli kullanılır
+    2) assets/photos/{id}-0.jpg + {id}-1.jpg -> gerçek fotoğraf (başlangıç + bitiş karesi);
+       uygulama bu iki kareyi sırayla göstererek hareketi animasyonlu canlandırır
+    3) inline animasyonlu SVG çizim       -> ne GIF ne foto varsa
 
-  Önerilen kaynaklar (manuel olarak indirip assets/gifs/ klasörüne koyabilirsin):
-    1) wger.de açık egzersiz veritabanı — REST API: https://wger.de/api/v2/
-       Görseller: https://wger.de/media/exercise-images/{id}/{slug}.png
-       Lisans: CC-BY-SA 3.0 (atıf gerekli). API çoğunlukla PNG sunar, GIF azdır.
-       Endpoint örnekleri:
-         GET https://wger.de/api/v2/exerciseimage/?format=json
-         GET https://wger.de/api/v2/exerciseinfo/?language=2&format=json
-    2) musclewiki.com tarzı public GIF'ler — resmi/hotlinkable değil; kullanmadan
-       önce site şartlarını kontrol et. Geliştirme/kişisel kullanım için README'ye bak.
+  Yerel fotoğraflar: free-exercise-db (https://github.com/yuhonas/free-exercise-db)
+    Lisans: The Unlicense (kamu malı / public domain) — atıf zorunlu değil.
+    12 hareket gerçek fotoğrafla gelir; veritabanında olmayan 3 hareket
+    (monster walk, shadow boxing, kuadriseps izometrik) animasyonlu SVG ile gösterilir.
 
-  Eksik dosyaların tam listesi README.md içindedir.
+  Daha fazla / farklı görsel için:
+    - wger.de açık egzersiz veritabanı (CC-BY-SA 3.0): https://wger.de/api/v2/
+    - Kendi çekimini GIF'e çevirip assets/gifs/{id}.gif olarak koyabilirsin.
+  Ayrıntı README.md içindedir.
 -->
 <script src="https://cdn.tailwindcss.com"></script>
 <script>
@@ -171,6 +171,49 @@
       <path d="M55 55 L72 70"/>
       <path d="M14 88 H86"/>
     `),
+    // Animated (SMIL) — used for moves with no real photo in the dataset
+    monster: SVG(`
+      <circle cx="50" cy="16" r="7" fill="currentColor" stroke="none"/>
+      <path d="M50 23 V46"/>
+      <path d="M50 30 L40 40"/>
+      <path d="M50 30 L60 40"/>
+      <path d="M50 46 L38 78"/>
+      <g>
+        <path d="M50 46 L62 78"/>
+        <animateTransform attributeName="transform" type="translate"
+          values="0 0;16 0;0 0" keyTimes="0;0.5;1" dur="1.6s" repeatCount="indefinite"
+          calcMode="spline" keySplines="0.4 0 0.2 1;0.4 0 0.2 1"/>
+      </g>
+      <line x1="44" y1="60" x2="56" y2="60" stroke-width="1.8" stroke-dasharray="3 3">
+        <animate attributeName="x2" values="56;74;56" keyTimes="0;0.5;1" dur="1.6s"
+          repeatCount="indefinite" calcMode="spline" keySplines="0.4 0 0.2 1;0.4 0 0.2 1"/>
+      </line>
+    `),
+    boxing: SVG(`
+      <circle cx="48" cy="18" r="7" fill="currentColor" stroke="none"/>
+      <path d="M48 25 V52"/>
+      <path d="M48 52 L40 80"/>
+      <path d="M48 52 L58 80"/>
+      <line x1="48" y1="34" x2="64" y2="36">
+        <animate attributeName="x2" values="60;82;60" dur="0.7s" repeatCount="indefinite"/>
+        <animate attributeName="y2" values="38;31;38" dur="0.7s" repeatCount="indefinite"/>
+      </line>
+      <line x1="48" y1="34" x2="60" y2="40">
+        <animate attributeName="x2" values="82;60;82" dur="0.7s" repeatCount="indefinite"/>
+        <animate attributeName="y2" values="31;38;31" dur="0.7s" repeatCount="indefinite"/>
+      </line>
+    `),
+    quadiso: SVG(`
+      <circle cx="16" cy="50" r="6" fill="currentColor" stroke="none"/>
+      <path d="M22 50 H58"/>
+      <path d="M40 50 L36 40"/>
+      <path d="M58 50 L80 50"/>
+      <line x1="12" y1="74" x2="88" y2="74" stroke-width="1.6"/>
+      <circle cx="66" cy="50" r="4" fill="currentColor" stroke="none">
+        <animate attributeName="r" values="3;9;3" dur="1s" repeatCount="indefinite"/>
+        <animate attributeName="opacity" values="0.15;0.5;0.15" dur="1s" repeatCount="indefinite"/>
+      </circle>
+    `),
   };
 
   // -----------------------------------------------------------------------------
@@ -187,7 +230,7 @@
       id: 'monster-walk', name: 'Monster walk (bantla yan adım)',
       mode: 'reps', repText: '10 adım × 2 yön',
       tips: ['Bant dizlerin hemen üstünde', 'Kalça düşmesin', 'Dizler ayak parmak hizasında'],
-      svgKey: 'band',
+      svgKey: 'monster',
     },
     'calf-raises': {
       id: 'calf-raises', name: 'Calf raises',
@@ -199,7 +242,7 @@
       id: 'quad-isometric', name: 'Kuadriseps izometrik sıkma',
       mode: 'hold', holdSec: 10, rounds: 5, restBetween: 5,
       tips: ['Diz arkasını yere bastır', 'Ön uyluk kasını sıkıca kasıp 10 sn tut'],
-      svgKey: 'core',
+      svgKey: 'quadiso',
     },
     'goblet-squat': {
       id: 'goblet-squat', name: 'Goblet squat (8 kg kettlebell)',
@@ -233,7 +276,7 @@
       mode: 'interval', workSec: 40, restSec: 20,
       tips: ['Dambıl 1–2 kg’ı geçmesin', 'Darbeyi sonuna kadar uzatma (omuz koruması)',
              'Ayaklar sabit'],
-      svgKey: 'core',
+      svgKey: 'boxing',
     },
     'dead-bug': {
       id: 'dead-bug', name: 'Pilates topu dead bug',
@@ -274,6 +317,18 @@
       svgKey: 'calf',
     },
   };
+
+  // Real exercise photos (free-exercise-db, Unlicense) bundled locally as two
+  // frames (start/end) — animated client-side by alternating them.
+  const PHOTO_IDS = [
+    'walk-in-place', 'calf-raises', 'goblet-squat', 'reverse-lunge',
+    'single-leg-glute-bridge', 'kb-rdl', 'dead-bug', 'pallof-press',
+    'band-leg-extension', 'prone-hamstring-curl', 'seated-leg-curl',
+    'single-leg-calf-raises',
+  ];
+  PHOTO_IDS.forEach(id => {
+    EXERCISES[id].frames = [`assets/photos/${id}-0.jpg`, `assets/photos/${id}-1.jpg`];
+  });
 
   const PROGRAM = [
     { key: 'warmup',   name: 'Isınma',                 minutes: 4,  met: 3.0,
@@ -630,47 +685,71 @@
     return e;
   }
 
-  // GIF loader with skeleton + SVG fallback
-  function gifBox(exerciseId, opts = {}) {
+  // Track running 2-frame animation intervals so we can stop them on navigation
+  const GIF_TIMERS = new Set();
+  function clearGifTimerOn(node) {
+    if (node && node._gifTimer) { clearInterval(node._gifTimer); GIF_TIMERS.delete(node._gifTimer); node._gifTimer = null; }
+  }
+  function clearAllGifTimers() { GIF_TIMERS.forEach(t => clearInterval(t)); GIF_TIMERS.clear(); }
+
+  // Layered media loader: user GIF override -> real-photo 2-frame animation -> animated SVG
+  function gifBox(exerciseId) {
     const ex = EXERCISES[exerciseId];
     const box = el('div', {
       class: 'relative w-full aspect-video rounded-xl overflow-hidden bg-slate-200 dark:bg-slate-800 ring-1 ring-slate-200 dark:ring-slate-700',
     });
+    if (!ex) return box;
     const skel = el('div', { class: 'absolute inset-0 skeleton' });
     box.appendChild(skel);
 
-    if (!ex) return box;
+    const showImg = (src) => {
+      const img = el('img', { class: 'absolute inset-0 w-full h-full object-cover bg-white dark:bg-slate-900', alt: ex.name });
+      img.src = src;
+      box.replaceChildren(img);
+      return img;
+    };
 
-    const img = new Image();
-    img.alt = ex.name;
-    img.className = 'absolute inset-0 w-full h-full object-cover opacity-0 transition-opacity';
-    img.onload = () => {
-      skel.remove();
-      img.style.opacity = '1';
-      box.appendChild(img);
+    const showFrames = (frames) => {
+      const img = showImg(frames[0]);
+      // preload second frame, then alternate
+      const pre = new Image(); pre.src = frames[1];
+      let i = 0;
+      const t = setInterval(() => { i = (i + 1) % frames.length; img.src = frames[i]; }, 800);
+      GIF_TIMERS.add(t);
+      box._gifTimer = t;
     };
-    img.onerror = () => {
-      skel.remove();
-      const fb = el('div', {
-        class: 'absolute inset-0 flex flex-col items-center justify-center p-3 text-center',
+
+    const showSvg = () => {
+      box.replaceChildren(el('div', {
+        class: 'absolute inset-0 flex items-center justify-center p-4',
         html: SVG_FALLBACKS[ex.svgKey] || SVG_FALLBACKS.core,
-      });
-      // The html replaces children, so wrap and add caption
-      box.appendChild(fb);
-      const cap = el('div', {
-        class: 'absolute bottom-1 left-0 right-0 text-[10px] text-slate-500 dark:text-slate-400 text-center px-2',
-      }, [`GIF eksik · assets/gifs/${ex.id}.gif`]);
-      box.appendChild(cap);
+      }));
     };
-    // Trigger load
-    img.src = `assets/gifs/${ex.id}.gif?v=1`;
+
+    const tryFrames = () => {
+      if (ex.frames && ex.frames.length) {
+        const test = new Image();
+        test.onload = () => showFrames(ex.frames);
+        test.onerror = showSvg;
+        test.src = ex.frames[0];
+      } else {
+        showSvg();
+      }
+    };
+
+    // 1) user-supplied GIF override (assets/gifs/{id}.gif)
+    const userGif = new Image();
+    userGif.onload = () => showImg(userGif.src);
+    userGif.onerror = tryFrames;
+    userGif.src = `assets/gifs/${ex.id}.gif?v=1`;
+
     return box;
   }
 
   function preloadGif(exerciseId) {
-    if (!exerciseId || !EXERCISES[exerciseId]) return;
-    const i = new Image();
-    i.src = `assets/gifs/${exerciseId}.gif?v=1`;
+    const ex = EXERCISES[exerciseId];
+    if (!ex || !ex.frames) return;
+    ex.frames.forEach(src => { const i = new Image(); i.src = src; });
   }
 
   // -----------------------------------------------------------------------------
@@ -1245,6 +1324,7 @@
       u.sublabel.textContent = sub;
 
       // GIF
+      clearGifTimerOn(u.gifWrap.firstElementChild);
       const newGif = step.exerciseId ? gifBox(step.exerciseId)
                                      : el('div', { class: 'w-full aspect-video rounded-xl bg-brand-50 dark:bg-brand-900/30 flex items-center justify-center text-brand-700 dark:text-brand-300 text-3xl font-bold' }, ['Dinlenme']);
       u.gifWrap.replaceChildren(newGif);
@@ -1588,6 +1668,7 @@
 
     handle() {
       let hash = location.hash || '';
+      clearAllGifTimers();
       // Leaving workout/bike screens — cleanup if engine running
       if (Router.current === '#workout' && hash !== '#workout' && Engine.running) {
         if (!confirm('Antrenmandan çıkmak istiyor musun? İlerleme kaydedilmeyecek.')) {

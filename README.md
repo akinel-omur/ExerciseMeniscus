@@ -43,56 +43,48 @@ manifest gömülüdür, ikonla birlikte standalone uygulama gibi açılır.
 - Bisiklet günü için 30/45 dk geri sayım modu
 - PWA manifest gömülü, ana ekrana eklenebilir
 
-## Eksik GIF'ler
+## Egzersiz görselleri
 
-Uygulama, her egzersizin animasyonu için `assets/gifs/{exercise-id}.gif`
-dosyasını arar. Dosya yoksa egzersize uygun gömülü bir **SVG çizim fallback**
-gösterilir — yani uygulama görselsiz kalmaz, ama gerçek hareket demosu için
-GIF'leri kendin eklemen gerekir.
+Her egzersiz kartı görseli şu öncelik sırasıyla yükler:
 
-Şu **15 GIF eksik** — `assets/gifs/` klasörüne aşağıdaki adlarla koyabilirsin:
+1. `assets/gifs/{exercise-id}.gif` — **kendi GIF'ini koyarsan öncelikli** kullanılır
+2. `assets/photos/{id}-0.jpg` + `{id}-1.jpg` — **gerçek fotoğraf** (başlangıç + bitiş
+   karesi); uygulama bu iki kareyi sırayla göstererek hareketi animasyonlu canlandırır
+3. Gömülü **animasyonlu SVG** çizim — ne GIF ne foto varsa
 
-| Dosya adı | Egzersiz |
-|---|---|
-| `walk-in-place.gif` | Yerinde yürüyüş |
-| `monster-walk.gif` | Monster walk (bantla yan adım) |
-| `calf-raises.gif` | Calf raises |
-| `quad-isometric.gif` | Kuadriseps izometrik sıkma |
-| `goblet-squat.gif` | Goblet squat |
-| `reverse-lunge.gif` | Reverse lunge |
-| `single-leg-glute-bridge.gif` | Single-leg glute bridge |
-| `kb-rdl.gif` | Kettlebell Romanian deadlift |
-| `db-shadow-boxing.gif` | Dambıl shadow boxing |
-| `dead-bug.gif` | Pilates topu dead bug |
-| `pallof-press.gif` | Bant ile pallof press |
-| `band-leg-extension.gif` | Bant ile leg extension |
-| `prone-hamstring-curl.gif` | Pilates topu prone hamstring curl |
-| `seated-leg-curl.gif` | Bant ile oturarak leg curl |
-| `single-leg-calf-raises.gif` | Tek bacak calf raises |
+### Hazır gelen gerçek fotoğraflar (12 hareket)
 
-### GIF kaynakları
+Aşağıdaki 12 hareket, repoda `assets/photos/` içinde gerçek fotoğraflarla gelir —
+kaynak: [free-exercise-db](https://github.com/yuhonas/free-exercise-db),
+lisans **The Unlicense** (kamu malı, atıf zorunlu değil):
 
-1. **wger.de** — açık kaynak egzersiz veritabanı, REST API:
-   - API kökü: `https://wger.de/api/v2/`
-   - Görsel listesi: `https://wger.de/api/v2/exerciseimage/?format=json`
-   - Görsel URL biçimi: `https://wger.de/media/exercise-images/{id}/{slug}.png`
-   - **Lisans:** CC-BY-SA 3.0 (atıf gerekli). Çoğunlukla statik PNG sunar; GIF azdır.
-   - Rehabilitasyon hareketleri (monster walk, pallof press, dead bug, banded
-     leg curl) için kapsama zayıftır — büyük ihtimalle bulamayacağın
-     hareketler için aşağıdaki ikinci kaynağa veya kendi çekimine başvurman gerekir.
+Yerinde yürüyüş · Calf raises · Goblet squat · Reverse lunge · Single-leg glute
+bridge · Kettlebell RDL · Dead bug · Pallof press · Leg extension · Prone
+hamstring curl · Oturarak leg curl · Tek bacak calf raises.
 
-2. **musclewiki.com tarzı kaynaklar** — resmi/hotlinkable olarak ilan edilmemiş
-   medya CDN'leri. Doğrudan link verebileceğin garantisi yok, kullanmadan önce
-   site şartlarına ve telif durumuna dikkat et. Yerel `assets/gifs/` klasörüne
-   indirip kullanmak en güvenli yol.
+### Animasyonlu SVG ile gösterilen 3 hareket
 
-3. **Kendi çekimin** — telefonla 3–5 sn'lik bir döngü çek, `ffmpeg` ile
-   GIF'e çevir:
-   ```
-   ffmpeg -i input.mp4 -vf "fps=12,scale=480:-1:flags=lanczos" -loop 0 goblet-squat.gif
-   ```
+Bu hareketler veritabanında bulunmadığı için gömülü animasyonlu SVG çizimle
+gösterilir (hareketi canlandırır ama foto değildir):
 
-GIF'i ekledikten sonra sayfayı yeniden yükle; uygulama otomatik olarak gösterir.
+- **Monster walk** (bantla yan adım)
+- **Dambıl shadow boxing**
+- **Kuadriseps izometrik sıkma**
+
+İstersen bunlara da kendi GIF'ini ekleyerek SVG'nin yerini alabilirsin:
+`assets/gifs/monster-walk.gif`, `assets/gifs/db-shadow-boxing.gif`,
+`assets/gifs/quad-isometric.gif`.
+
+### Görselleri değiştirmek / iyileştirmek
+
+- **Kendi GIF'in** (en gerçekçi): telefonla 3–5 sn döngü çek, `ffmpeg` ile çevir
+  ve `assets/gifs/{id}.gif` olarak koy:
+  ```
+  ffmpeg -i input.mp4 -vf "fps=12,scale=480:-1:flags=lanczos" -loop 0 goblet-squat.gif
+  ```
+- **wger.de** açık egzersiz veritabanı (CC-BY-SA 3.0): `https://wger.de/api/v2/`
+
+Görseli ekledikten sonra sayfayı yenile; uygulama otomatik gösterir.
 
 ## Teknik notlar
 
