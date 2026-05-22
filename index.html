@@ -633,10 +633,7 @@
       for (let i = 0; i < 365; i++) {
         const d = new Date(today); d.setDate(d.getDate() - i);
         const iso = isoOf(d);
-        const dow = d.getDay(); // 0=Sun, 4=Thu
-        const isRest = (dow === 4 || dow === 0);
         if (set.has(iso)) { streak++; continue; }
-        if (isRest) continue;
         if (iso === todayStr) continue;
         break;
       }
@@ -666,12 +663,10 @@
         const d = new Date(monday); d.setDate(d.getDate() + i);
         const iso = isoOf(d);
         const dow = d.getDay();
-        const isRest = (dow === 4 || dow === 0);
         const isToday = (iso === todayStr);
         const isPast = (iso < todayStr);
         let state;
         if (map[iso]) state = 'done';
-        else if (isRest) state = 'rest';
         else if (isToday) state = 'today';
         else if (isPast) state = 'missed';
         else state = 'upcoming';
@@ -788,10 +783,9 @@
   const TR_DAYS_SHORT = ['Paz', 'Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt'];
 
   function scheduledType(dow) {
-    // 1 Mon, 3 Wed, 5 Fri = workout; 2 Tue, 6 Sat = bike; 4 Thu, 0 Sun = rest
+    // 1 Mon, 3 Wed, 5 Fri = workout; all other days = bike
     if (dow === 1 || dow === 3 || dow === 5) return 'workout';
-    if (dow === 2 || dow === 6) return 'bike';
-    return 'rest';
+    return 'bike';
   }
   const TYPE_TR = { workout: 'Antrenman', bike: 'Bisiklet', rest: 'Dinlenme' };
 
@@ -1275,8 +1269,7 @@
         })),
         el('div', { class: 'mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-slate-500 dark:text-slate-400' }, [
           el('span', {}, ['● Pzt/Çar/Cum: antrenman']),
-          el('span', {}, ['🚴 Sal/Cmt: bisiklet']),
-          el('span', {}, ['· Per/Paz: dinlenme']),
+          el('span', {}, ['🚴 Diğer günler: bisiklet']),
         ]),
       ]);
 

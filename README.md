@@ -25,7 +25,7 @@ manifest gömülüdür, ikonla birlikte standalone uygulama gibi açılır.
 | **Blok 2 · HIIT** | 8 dk | 2 tur · 40 sn çalış / 20 sn dinlen · KB RDL · Shadow boxing · Dead bug · Pallof press |
 | **Blok 3 · İzole bitirme** | 3 dk | 2 set × 15 · Bant leg extension · Prone ham curl · Seated leg curl · Tek bacak calf raises |
 
-**Haftalık plan:** Pzt/Çar/Cum antrenman · Sal/Cmt bisiklet 30–45 dk · Per/Paz dinlenme.
+**Haftalık plan:** Pzt/Çar/Cum antrenman · diğer her gün bisiklet 30–45 dk.
 
 ## Özellikler
 
